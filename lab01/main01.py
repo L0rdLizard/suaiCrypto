@@ -1,8 +1,10 @@
 from lab01.DoubleSquareCipher import DoubleSquareCipher
+from lab01.DoubleSquare import DoubleSquare
 
 cipher = DoubleSquareCipher("гуап", "люблю")
 
 address = "bigText.txt"
+
 ciphertext = cipher.encode(address)
 decoded_plaintext = cipher.decode(ciphertext)
 
