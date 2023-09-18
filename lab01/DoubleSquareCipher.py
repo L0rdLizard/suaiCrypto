@@ -1,20 +1,22 @@
 import random
 
 class DoubleSquareCipher:
+
+    alphabet_normal = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя ,."
     def __init__(self, key1, key2):
         self.key1 = key1
         self.key2 = key2
         self.square1 = self.generate_square(key1)
         self.square2 = self.generate_square(key2)
 
-    @staticmethod
-    def generate_square(key):
-        alphabet_normal = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя ,."
-        alist = list(alphabet_normal)
+
+    def generate_square(self, key):
+
+        alist = list(self.alphabet_normal)
         random.shuffle(alist)
         alphabet = ''.join(alist)
 
-        key = key.lower().replace("j", "i")
+        key = key.lower()
         key_set = set(key)
         square = []
         for letter in key:
@@ -27,18 +29,21 @@ class DoubleSquareCipher:
         print()
         return square
 
+    @staticmethod
+    def filter_string(input_string, allowed_chars):
+        return ''.join(c for c in input_string if c in allowed_chars)
+
     def encode(self, address):
 
         with open(address, 'r', encoding='utf-8') as f:
             plaintext = f.readline()
 
-        print(plaintext)
-
         plaintext = plaintext.lower()
 
-        plaintext = "".join(filter(str.isalpha, plaintext))
+        plaintext = self.filter_string(plaintext, self.alphabet_normal)
+
         if len(plaintext) % 2 == 1:
-            plaintext += "x"
+            plaintext += " "
         ciphertext = ""
         for i in range(0, len(plaintext), 2):
             a = plaintext[i]
@@ -56,6 +61,7 @@ class DoubleSquareCipher:
             else:
                 a_col, b_col = b_col, a_col
             ciphertext += self.square1[a_row*6 + a_col]
+
             ciphertext += self.square2[b_row*6 + b_col]
         return ciphertext
 
@@ -77,10 +83,8 @@ class DoubleSquareCipher:
             else:
                 a_col, b_col = b_col, a_col
             plaintext += self.square1[a_row*6 + a_col]
-            print(self.square1[a_row*6 + a_col])
 
             plaintext += self.square2[b_row*6 + b_col]
-            print(self.square2[b_row*6 + b_col])
         return plaintext
 
 
