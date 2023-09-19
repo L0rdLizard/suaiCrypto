@@ -1,7 +1,7 @@
 from lab01.DoubleSquareCipher import DoubleSquareCipher
 from lab01.DoubleSquare import DoubleSquare
 
-cipher = DoubleSquareCipher("гуап", "люблю")
+cipher = DoubleSquareCipher()
 
 address = "bigText.txt"
 

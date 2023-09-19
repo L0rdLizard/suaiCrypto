@@ -1,14 +1,29 @@
 import random
 
+
 class DoubleSquareCipher:
-
     alphabet_normal = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя ,."
-    def __init__(self, key1, key2):
-        self.key1 = key1
-        self.key2 = key2
-        self.square1 = self.generate_square(key1)
-        self.square2 = self.generate_square(key2)
 
+    # def __init__(self):
+    #     self.key1 = "шифр двойного квадрата"
+    #     self.key2 = "плейфейр с двумя таблицами"
+    #     self.square1 = self.generate_square(self.key1)
+    #     self.square2 = self.generate_square(self.key2)
+
+    def __init__(self, key1=None, key2=None):
+
+        if key1 is None:
+            self.key1 = "шифр двойного квадрата"
+        else:
+            self.key1 = key1
+
+        if key2 is None:
+            self.key2 = "плейфейр с двумя таблицами"
+        else:
+            self.key2 = key2
+
+        self.square1 = self.generate_square(self.key1)
+        self.square2 = self.generate_square(self.key2)
 
     def generate_square(self, key):
 
@@ -47,7 +62,7 @@ class DoubleSquareCipher:
         ciphertext = ""
         for i in range(0, len(plaintext), 2):
             a = plaintext[i]
-            b = plaintext[i+1]
+            b = plaintext[i + 1]
             a_row = self.square1.index(a) // 6
             a_col = self.square1.index(a) % 6
             b_row = self.square2.index(b) // 6
@@ -60,16 +75,16 @@ class DoubleSquareCipher:
                 b_row = (b_row + 1) % 6
             else:
                 a_col, b_col = b_col, a_col
-            ciphertext += self.square1[a_row*6 + a_col]
+            ciphertext += self.square1[a_row * 6 + a_col]
 
-            ciphertext += self.square2[b_row*6 + b_col]
+            ciphertext += self.square2[b_row * 6 + b_col]
         return ciphertext
 
     def decode(self, ciphertext):
         plaintext = ""
         for i in range(0, len(ciphertext), 2):
             a = ciphertext[i]
-            b = ciphertext[i+1]
+            b = ciphertext[i + 1]
             a_row = self.square1.index(a) // 6
             a_col = self.square1.index(a) % 6
             b_row = self.square2.index(b) // 6
@@ -82,11 +97,10 @@ class DoubleSquareCipher:
                 b_row = (b_row - 1) % 6
             else:
                 a_col, b_col = b_col, a_col
-            plaintext += self.square1[a_row*6 + a_col]
+            plaintext += self.square1[a_row * 6 + a_col]
 
-            plaintext += self.square2[b_row*6 + b_col]
+            plaintext += self.square2[b_row * 6 + b_col]
         return plaintext
-
 
     def frequency_analysis(text):
         frequencies = dict()
