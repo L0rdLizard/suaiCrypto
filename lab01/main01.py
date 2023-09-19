@@ -9,8 +9,8 @@ alphabet_normal = "абвгдеёжзийклмнопрстуфхцчшщъыь�
 
 cipher = DoubleSquareCipher("секрет", "птица")
 
-# address = "voyna-i-mir.txt"
-address = "bigText.txt"
+address = "voyna-i-mir.txt"
+# address = "bigText.txt"
 
 ciphertext = cipher.encode(address)
 decoded_plaintext = cipher.decode(ciphertext)
@@ -31,6 +31,3 @@ frequencies = frequency_analysis(ciphertext, alphabet_normal)
 
 for char, frequency in frequencies.items():
     print(f"{char}: {frequency:.2f}%")
-
-# founded_shift = find_shift(ciphertext, alphabet_normal, alphabet_frequencies)
-# print("Вычисленный сдвиг:", founded_shift)
