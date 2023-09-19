@@ -1,6 +1,5 @@
 import random
 
-
 class DoubleSquareCipher:
     alphabet_normal = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя ,."
 
@@ -51,7 +50,7 @@ class DoubleSquareCipher:
     def encode(self, address):
 
         with open(address, 'r', encoding='utf-8') as f:
-            plaintext = f.readline()
+            plaintext = f.read()
 
         plaintext = plaintext.lower()
 
@@ -102,6 +101,7 @@ class DoubleSquareCipher:
             plaintext += self.square2[b_row * 6 + b_col]
         return plaintext
 
+    @staticmethod
     def frequency_analysis(text):
         frequencies = dict()
         total_chars = 0
