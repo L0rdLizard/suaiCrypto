@@ -1,6 +1,6 @@
 import math
 
-alphabet_normal = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
+alphabet_normal = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя .,"
 
 
 def frequency_analysis(text: str, alphabet: str) -> dict:
@@ -19,32 +19,3 @@ def frequency_analysis(text: str, alphabet: str) -> dict:
 
     return frequencies
 
-
-def calculate_score(vector1, vector2):
-    if len(vector1) != len(vector2):
-        raise ValueError("Векторы должны иметь одинаковую длину")
-
-    diff_vector = [x - y for x, y in zip(vector1, vector2)]
-    squared_diff = [x ** 2 for x in diff_vector]
-    sum_squared_diff = sum(squared_diff)
-    score = math.sqrt(sum_squared_diff)
-
-    return score
-
-
-def find_shift(ciphertext: str, alphabet: str, target_frequencies: dict):
-    def shift(lst, n):
-        return lst[n:] + lst[:n]
-
-    frequencies = frequency_analysis(ciphertext, alphabet_normal)
-    frequencies = list(frequencies.values())
-    target = list(target_frequencies.values())
-    best_shift, best_score = 0, float("inf")
-
-    for i in range(26):
-        score = calculate_score(shift(frequencies, i), target)
-        if score < best_score:
-            best_score = score
-            best_shift = i
-
-    return best_shift
