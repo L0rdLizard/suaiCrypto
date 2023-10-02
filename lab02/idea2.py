@@ -116,16 +116,26 @@ class IDEA:
         return ''.join([chr(byte) for byte in plaintext])
 
 
-plaintext = "Hello, World!"
+plaintext = "HelloWorld"
 key = "mysecretkey"
 
 cipher = IDEA(key)
 encrypted_text = cipher.encrypt(plaintext)
 decrypted_text = cipher.decrypt(encrypted_text)
 
+print("plaintext :", plaintext)
+print("Encrypted text :", encrypted_text)
+print("Decrypted text :", decrypted_text)
+print()
+
+plaintext_bytes = plaintext.encode('utf-8')
 encrypted_text_bytes = encrypted_text.encode('utf-8')
 decrypted_text_bytes = decrypted_text.encode('utf-8')
-plaintext_bytes = plaintext.encode('utf-8')
+
+print("plaintext :", plaintext_bytes)
+print("Encrypted text :", encrypted_text_bytes)
+print("Decrypted text :", decrypted_text_bytes)
+print()
 
 plaintext_text_hex = plaintext_bytes.hex()
 encrypted_text_hex = encrypted_text_bytes.hex()
