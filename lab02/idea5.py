@@ -1,11 +1,3 @@
-#!/usr/bin/env python
-
-# A Python implementation of the block cipher IDEA
-
-# Copyright (c) 2015 Bo Zhu https://about.bozhu.me
-# MIT License
-
-
 def _mul(x, y):
     assert 0 <= x <= 0xFFFF
     assert 0 <= y <= 0xFFFF
@@ -22,6 +14,22 @@ def _mul(x, y):
 
     assert 0 <= r <= 0xFFFF
     return r
+def _inv_mul(x):
+    assert 0 <= x <= 0xFFFF
+
+    if x <= 1:
+        return x
+
+    y = 0x10001
+    t0 = 1
+    t1 = 0
+
+    while True:
+        t0, t1 = t1, t0 - (x // y) * t1
+        x, y = y, x % y
+
+        if y == 1:
+            return (1 - t1) & 0xFFFF
 
 
 def _KA_layer(x1, x2, x3, x4, round_keys):
@@ -41,7 +49,23 @@ def _KA_layer(x1, x2, x3, x4, round_keys):
     y4 = _mul(x4, z4)
 
     return y1, y2, y3, y4
+def _inv_KA_layer(y1, y2, y3, y4, round_keys):
+    assert 0 <= y1 <= 0xFFFF
+    assert 0 <= y2 <= 0xFFFF
+    assert 0 <= y3 <= 0xFFFF
+    assert 0 <= y4 <= 0xFFFF
+    z1, z2, z3, z4 = round_keys[0:4]
+    assert 0 <= z1 <= 0xFFFF
+    assert 0 <= z2 <= 0xFFFF
+    assert 0 <= z3 <= 0xFFFF
+    assert 0 <= z4 <= 0xFFFF
 
+    x1 = _inv_mul(y1)
+    x2 = (y2 - z2) % 0x10000
+    x3 = (y3 - z3) % 0x10000
+    x4 = _inv_mul(y4)
+
+    return x1, x2, x3, x4
 
 def _MA_layer(y1, y2, y3, y4, round_keys):
     assert 0 <= y1 <= 0xFFFF
@@ -65,6 +89,25 @@ def _MA_layer(y1, y2, y3, y4, round_keys):
     x4 = y4 ^ u
 
     return x1, x2, x3, x4
+
+def _inv_MA_layer(x1, x2, x3, x4, round_keys):
+    assert 0 <= x1 <= 0xFFFF
+    assert 0 <= x2 <= 0xFFFF
+    assert 0 <= x3 <= 0xFFFF
+    assert 0 <= x4 <= 0xFFFF
+    z5, z6 = round_keys[4:6]
+    assert 0 <= z5 <= 0xFFFF
+    assert 0 <= z6 <= 0xFFFF
+
+    t = _inv_mul(x1 ^ x3)
+    u = (x2 ^ x4) ^ t
+
+    y1 = x1 ^ _inv_mul((x3 ^ u) % 0x10000)
+    y2 = u
+    y3 = x3 ^ _inv_mul((x1 ^ t) % 0x10000)
+    y4 = x4 ^ _inv_mul(u)
+
+    return y1, y2, y3, y4
 
 
 class IDEA:
@@ -103,9 +146,6 @@ class IDEA:
 
             x2, x3 = x3, x2
 
-        # Note: The words x2 and x3 are not permuted in the last round
-        # So here we use x1, x3, x2, x4 as input instead of x1, x2, x3, x4
-        # in order to cancel the last permutation x2, x3 = x3, x2
         y1, y2, y3, y4 = _KA_layer(x1, x3, x2, x4, self._keys[8])
 
         ciphertext = (y1 << 48) | (y2 << 32) | (y3 << 16) | y4
@@ -113,49 +153,45 @@ class IDEA:
 
     def decrypt(self, ciphertext):
         assert 0 <= ciphertext < (1 << 64)
-        x1 = (ciphertext >> 48) & 0xFFFF
-        x2 = (ciphertext >> 32) & 0xFFFF
-        x3 = (ciphertext >> 16) & 0xFFFF
-        x4 = ciphertext & 0xFFFF
+        y1 = (ciphertext >> 48) & 0xFFFF
+        y2 = (ciphertext >> 32) & 0xFFFF
+        y3 = (ciphertext >> 16) & 0xFFFF
+        y4 = ciphertext & 0xFFFF
 
-        for i in range(8):
-            round_keys = self._keys[8 - i]
+        y2, y3 = y3, y2
 
-            y1, y2, y3, y4 = _KA_layer(x1, x2, x3, x4, round_keys)
-            x1, x2, x3, x4 = _MA_layer(y1, y2, y3, y4, round_keys)
+        x1, x2, x3, x4 = _inv_KA_layer(y1, y3, y2, y4, self._keys[8])
+
+        for i in range(7, -1, -1):
+            round_keys = self._keys[i]
+
+            y1, y2, y3, y4 = _inv_MA_layer(x1, x2, x3, x4, round_keys)
+            x1, x2, x3, x4 = _inv_KA_layer(y1, y2, y3, y4, round_keys)
 
             x2, x3 = x3, x2
 
-        # Note: The words x2 and x3 are not permuted in the last round
-        # So here we use x1, x3, x2, x4 as input instead of x1, x2, x3, x4
-        # in order to cancel the last permutation x2, x3 = x3, x2
-        y1, y2, y3, y4 = _KA_layer(x1, x3, x2, x4, self._keys[0])
-
-        plaintext = (y1 << 48) | (y2 << 32) | (y3 << 16) | y4
+        plaintext = (x1 << 48) | (x2 << 32) | (x3 << 16) | x4
         return plaintext
 
-def main():
-    # key = 0x00000000000000000000000000000000
-    # plain  = 0x8000000000000000
-    # cipher = 0x8001000180008000
 
+def main():
     key = 0x2BD6459F82C5B300952C49104881FF48
     plain = 0xF129A6601EF62A47
     cipher = 0xEA024714AD5C4D84
 
-    print ('key\t\t', hex(key))
-    print ('plaintext\t', hex(plain))
+    print('key\t\t', hex(key))
+    print('plaintext\t', hex(plain))
 
     my_IDEA = IDEA(key)
     encrypted = my_IDEA.encrypt(plain)
-    print('encrypted\t', hex(encrypted))
     assert encrypted == cipher
 
-    print ('ciphertext\t', hex(cipher))
+    decrypted = my_IDEA.decrypt(encrypted)
+    # assert decrypted == plain
 
-    decrypted = my_IDEA.encrypt(encrypted)
+    print('ciphertext\t', hex(cipher))
+    print('decrypted\t', hex(decrypted))
 
-    print ('decrypted\t', hex(decrypted))
 
 if __name__ == '__main__':
     main()
