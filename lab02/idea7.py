@@ -202,7 +202,7 @@ def main():
 
     # print('ciphertext\t', hex(cipher))
 
-    decrypted = my_IDEA.encrypt(encrypted)
+    decrypted = my_IDEA.decrypt(encrypted)
 
     print('decrypted\t', hex(decrypted))
 
