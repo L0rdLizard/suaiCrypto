@@ -1,6 +1,7 @@
-class IDEA:
-    def __init__(self, key):
+class IDEA_CBC:
+    def __init__(self, key, iv):
         self._keys = None
+        self._iv = iv
         self.gen_keys(key)
 
     def mul_mod(self, a, b):
@@ -101,19 +102,27 @@ class IDEA:
         p3 = (plain >> 16) & 0xFFFF
         p4 = plain & 0xFFFF
 
-        # All 8 rounds
+        encrypted = 0
         for i in range(8):
             keys = self._keys[i]
+
+            # Apply XOR with previous ciphertext (or IV in the first round)
+            if i == 0:
+                p1 ^= self._iv >> 48
+                p2 ^= self._iv >> 32
+                p3 ^= self._iv >> 16
+                p4 ^= self._iv
+            else:
+                p1 ^= (encrypted >> 48) & 0xFFFF
+                p2 ^= (encrypted >> 32) & 0xFFFF
+                p3 ^= (encrypted >> 16) & 0xFFFF
+                p4 ^= encrypted & 0xFFFF
+
             p1, p2, p3, p4 = self.round(p1, p2, p3, p4, keys)
 
-        # Final output transformation
-        k1, k2, k3, k4, x, y = self._keys[8]
-        y1 = self.mul_mod(p1, k1)
-        y2 = self.add_mod(p3, k2)
-        y3 = self.add_mod(p2, k3)
-        y4 = self.mul_mod(p4, k4)
+            # Update previous ciphertext
+            encrypted = (encrypted << 64) | ((p1 << 48) | (p2 << 32) | (p3 << 16) | p4)
 
-        encrypted = (y1 << 48) | (y2 << 32) | (y3 << 16) | y4
         return encrypted
 
     def decrypt(self, encrypted):
@@ -122,75 +131,38 @@ class IDEA:
         p3 = (encrypted >> 16) & 0xFFFF
         p4 = encrypted & 0xFFFF
 
-        # Round 1
-        keys = self._keys[8]
-        k1 = self.mul_inv(keys[0])
-        if k1 < 0:
-            k1 = 0x10000 + 1 + k1
-        k2 = self.add_inv(keys[1])
-        k3 = self.add_inv(keys[2])
-        k4 = self.mul_inv(keys[3])
-        if k4 < 0:
-            k4 = 0x10000 + 1 + k4
-        keys = self._keys[7]
-        k5 = keys[4]
-        k6 = keys[5]
-        keys = [k1, k2, k3, k4, k5, k6]
-        p1, p2, p3, p4 = self.round(p1, p2, p3, p4, keys)
-
-        # Other rounds
-        for i in range(1, 8):
-            keys = self._keys[8 - i]
-            k1 = self.mul_inv(keys[0])
-            if k1 < 0:
-                k1 = 0x10000 + 1 + k1
-            k2 = self.add_inv(keys[2])
-            k3 = self.add_inv(keys[1])
-            k4 = self.mul_inv(keys[3])
-            if k4 < 0:
-                k4 = 0x10000 + 1 + k4
+        decrypted = 0
+        for i in range(8):
             keys = self._keys[7 - i]
-            k5 = keys[4]
-            k6 = keys[5]
-            keys = [k1, k2, k3, k4, k5, k6]
+
             p1, p2, p3, p4 = self.round(p1, p2, p3, p4, keys)
 
-        # Final output transformation
-        keys = self._keys[0]
-        k1 = self.mul_inv(keys[0])
-        if k1 < 0:
-            k1 = 0x10000 + 1 + k1
-        k2 = self.add_inv(keys[1])
-        k3 = self.add_inv(keys[2])
-        k4 = self.mul_inv(keys[3])
-        if k4 < 0:
-            k4 = 0x10000 + 1 + k4
-        y1 = self.mul_mod(p1, k1)
-        y2 = self.add_mod(p3, k2)
-        y3 = self.add_mod(p2, k3)
-        y4 = self.mul_mod(p4, k4)
-        decrypted = (y1 << 48) | (y2 << 32) | (y3 << 16) | y4
+            # Apply XOR with previous ciphertext (or IV in the last round)
+            if i == 7:
+                p1 ^= self._iv >> 48
+                p2 ^= self._iv >> 32
+                p3 ^= self._iv >> 16
+                p4 ^= self._iv
+            else:
+                p1 ^= (encrypted >> 48) & 0xFFFF
+                p2 ^= (encrypted >> 32) & 0xFFFF
+                p3 ^= (encrypted >> 16) & 0xFFFF
+                p4 ^= encrypted & 0xFFFF
+
+            # Update previous ciphertext
+            decrypted = (decrypted << 64) | ((p1 << 48) | (p2 << 32) | (p3 << 16) | p4)
+
         return decrypted
 
+
 def main():
-    # key = 0x00000000000000000000000000000000
-    # plain  = 0x8000000000000000
-    # cipher = 0x8001000180008000
-
     key = 0x2BD6459F82C5B300952C49104881FF48
+    iv = 0x1234567890ABCDEF
     plain = 0xF129A6601EF62A47
-    print('key\t\t', hex(key))
-    print('plaintext\t', hex(plain))
 
-    # cipher = 0xEA024714AD5C4D84
-
-    # key = 0x2BD6459F82C5B300952C49104881FF48
-    # plain = int("HelloWorld")
-
-    my_IDEA = IDEA(key)
+    my_IDEA = IDEA_CBC(key, iv)
     encrypted = my_IDEA.encrypt(plain)
     print('encrypted\t', hex(encrypted))
-    # assert encrypted == cipher
 
     decrypted = my_IDEA.decrypt(encrypted)
     print('decrypted\t', hex(decrypted))
