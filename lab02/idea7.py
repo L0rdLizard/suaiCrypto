@@ -58,26 +58,33 @@ class IDEA:
     def round(self, p1, p2, p3, p4, keys):
         k1, k2, k3, k4, k5, k6 = keys
 
-        # Step 1
-        p1 = self.mul_mod(p1, k1)
-        p4 = self.mul_mod(p4, k4)
-        p2 = self.add_mod(p2, k2)
-        p3 = self.add_mod(p3, k3)
-        # Step 2
-        x = p1 ^ p3
-        t0 = self.mul_mod(k5, x)
-        x = p2 ^ p4
-        x = self.add_mod(t0, x)
-        t1 = self.mul_mod(k6, x)
-        t2 = self.add_mod(t0, t1)
-        # Step 3
-        p1 = p1 ^ t1
-        p4 = p4 ^ t2
-        a = p2 ^ t2
-        p2 = p3 ^ t1
-        p3 = a
+        p1 = self.mul_mod(p1, k1) # 1
+        p2 = self.add_mod(p2, k2) # 2
+        p3 = self.add_mod(p3, k3) # 3
+        p4 = self.mul_mod(p4, k4) # 4
 
-        return p1, p2, p3, p4
+        x = p1 ^ p3 # 5
+        t0 = self.mul_mod(k5, x) # 7
+        x = p2 ^ p4 # 6
+
+        x = self.add_mod(t0, x) # 8
+
+        t1 = self.mul_mod(k6, x) # 9
+        t2 = self.add_mod(t0, t1) # 10
+
+        # p1 = p1 ^ t1
+        # p4 = p4 ^ t2
+        # a = p2 ^ t2
+        # p2 = p3 ^ t1
+        # p3 = a
+
+        r1 = p1 ^ t1 # 11
+        r2 = p3 ^ t1 # 12
+        r3 = p2 ^ t2 # 13
+        r4 = p4 ^ t2 # 14
+
+        # return p1, p2, p3, p4
+        return r1, r2, r3, r4
 
     def gen_keys(self, key):
         assert 0 <= key < (1 << 128)
@@ -101,13 +108,13 @@ class IDEA:
         p3 = (plain >> 16) & 0xFFFF
         p4 = plain & 0xFFFF
 
-        # All 8 rounds
+        # 8 циклов
         for i in range(8):
             keys = self._keys[i]
             p1, p2, p3, p4 = self.round(p1, p2, p3, p4, keys)
 
-        # Final output transformation
-        k1, k2, k3, k4, x, y = self._keys[8]
+        # окончательное преобразование
+        k1, k2, k3, k4, k5, k6 = self._keys[8]
         y1 = self.mul_mod(p1, k1)
         y2 = self.add_mod(p3, k2)
         y3 = self.add_mod(p2, k3)
@@ -172,28 +179,37 @@ class IDEA:
         decrypted = (y1 << 48) | (y2 << 32) | (y3 << 16) | y4
         return decrypted
 
+def string_to_hex(string):
+    return int(string.encode("utf-8").hex(), 16)
+
+def hex_to_string(hex_value):
+    hex_str = hex(hex_value)[2:]
+    if len(hex_str) % 2 != 0:
+        hex_str = '0' + hex_str
+    return bytes.fromhex(hex_str).decode("utf-8")
 def main():
-    # key = 0x00000000000000000000000000000000
-    # plain  = 0x8000000000000000
-    # cipher = 0x8001000180008000
-
     key = 0x2BD6459F82C5B300952C49104881FF48
-    plain = 0xF129A6601EF62A47
     print('key\t\t', hex(key))
+
+    # plain = 0xF129A6601EF62A47
+    # print('plaintext\t', hex(plain))
+
+    plainStr = "HelloWorld"
+    plain = string_to_hex(plainStr)
     print('plaintext\t', hex(plain))
+    print('plaintext\t', plainStr)
+    print()
 
-    # cipher = 0xEA024714AD5C4D84
-
-    # key = 0x2BD6459F82C5B300952C49104881FF48
-    # plain = int("HelloWorld")
 
     my_IDEA = IDEA(key)
     encrypted = my_IDEA.encrypt(plain)
     print('encrypted\t', hex(encrypted))
-    # assert encrypted == cipher
+    print()
 
     decrypted = my_IDEA.decrypt(encrypted)
+    decryptedStr = hex_to_string(decrypted)
     print('decrypted\t', hex(decrypted))
+    print('decrypted\t', decryptedStr)
 
 if __name__ == '__main__':
     main()
