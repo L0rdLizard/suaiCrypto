@@ -72,12 +72,6 @@ class IDEA:
         t1 = self.mul_mod(k6, x) # 9
         t2 = self.add_mod(t0, t1) # 10
 
-        # p1 = p1 ^ t1
-        # p4 = p4 ^ t2
-        # a = p2 ^ t2
-        # p2 = p3 ^ t1
-        # p3 = a
-
         r1 = p1 ^ t1 # 11
         r2 = p3 ^ t1 # 12
         r3 = p2 ^ t2 # 13
@@ -179,6 +173,25 @@ class IDEA:
         decrypted = (y1 << 48) | (y2 << 32) | (y3 << 16) | y4
         return decrypted
 
+    def encrypt_message(self, message):
+        encrypted_message = ''
+        for i in range(0, len(message), 8):
+            block = message[i:i+8]
+            block = string_to_hex(block)
+            encrypted_block = self.encrypt(block)
+            encrypted_message += hex(encrypted_block)[2:]
+        return encrypted_message
+
+    def decrypt_message(self, encrypted_message):
+        decrypted_message = ''
+        for i in range(0, len(encrypted_message), 16):
+            block = encrypted_message[i:i+16]
+            block = int(block, 16)
+            decrypted_block = self.decrypt(block)
+            decrypted_message += hex_to_string(decrypted_block)
+        return decrypted_message
+
+
 def string_to_hex(string):
     return int(string.encode("utf-8").hex(), 16)
 
@@ -187,29 +200,33 @@ def hex_to_string(hex_value):
     if len(hex_str) % 2 != 0:
         hex_str = '0' + hex_str
     return bytes.fromhex(hex_str).decode("utf-8")
+
 def main():
     key = 0x2BD6459F82C5B300952C49104881FF48
     print('key\t\t', hex(key))
 
-    # plain = 0xF129A6601EF62A47
-    # print('plaintext\t', hex(plain))
-
-    plainStr = "HelloWorld"
+    plainStr = "HelloWorld123HiHiHi Hello"
     plain = string_to_hex(plainStr)
-    print('plaintext\t', hex(plain))
+    # print('plaintext\t', hex(plain))
     print('plaintext\t', plainStr)
     print()
 
-
     my_IDEA = IDEA(key)
-    encrypted = my_IDEA.encrypt(plain)
-    print('encrypted\t', hex(encrypted))
-    print()
 
-    decrypted = my_IDEA.decrypt(encrypted)
-    decryptedStr = hex_to_string(decrypted)
-    print('decrypted\t', hex(decrypted))
-    print('decrypted\t', decryptedStr)
+    # encrypted = my_IDEA.encrypt(plain)
+    # print('encrypted\t', hex(encrypted))
+    # print()
+    #
+    # decrypted = my_IDEA.decrypt(encrypted)
+    # decryptedStr = hex_to_string(decrypted)
+    # print('decrypted\t', hex(decrypted))
+    # print('decrypted\t', decryptedStr)
+
+    encrypted_message = my_IDEA.encrypt_message(plainStr)
+    print('encrypted_message\t', encrypted_message)
+
+    decrypted_message = my_IDEA.decrypt_message(encrypted_message)
+    print('decrypted_message\t', decrypted_message)
 
 if __name__ == '__main__':
     main()
