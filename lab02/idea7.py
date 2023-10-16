@@ -186,17 +186,7 @@ class IDEA:
             block = string_to_hex(block)
             encrypted_block = self.encrypt(block)
             encrypted_message += hex(encrypted_block)[2:]
-            # encrypted_message += encrypted_block
         return encrypted_message
-
-    # def decrypt_message(self, encrypted_message):
-    #     decrypted_message = ''
-    #     for i in range(0, len(encrypted_message), 16):
-    #         block = encrypted_message[i:i+16]
-    #         block = int(block, 16)
-    #         decrypted_block = self.decrypt(block)
-    #         decrypted_message += hex_to_string(decrypted_block)
-    #     return decrypted_message
 
     def decrypt_message(self, encrypted_message):
         decrypted_message = ''
@@ -206,6 +196,15 @@ class IDEA:
             decrypted_block = self.decrypt(block)
             decrypted_message += hex(decrypted_block)[2:]
         return decrypted_message
+
+    # def decrypt_message(self, encrypted_message):
+    #     decrypted_message = ''
+    #     for i in range(0, len(encrypted_message), 16):
+    #         block = encrypted_message[i:i+16]
+    #         block = int(block, 16)
+    #         decrypted_block = self.decrypt(block)
+    #         decrypted_message += hex_to_string(decrypted_block)
+    #     return decrypted_message
 
 
 def string_to_hex(string):
@@ -233,7 +232,9 @@ def main():
     image_path = 'image.jpg'
     print('key\t\t', hex(key))
 
-    plainStr = "HelloWorld123HiHiHi Hello"
+    # plainStr = "HelloWorld123HiHiHi Hello"
+    plainStr = "To Sherlock Holmes she is always likes"
+    print(len(plainStr))
     # plain = string_to_hex(plainStr)
     # print('plaintext\t', hex(plain))
     print('plaintext\t', plainStr)
@@ -256,12 +257,13 @@ def main():
     decrypted_message = my_IDEA.decrypt_message(encrypted_message)
     print('decrypted_message_hex\t', decrypted_message)
 
-    print('decrypted_message\t', hex_to_string(int(decrypted_message, 16)))
-    image_str = image_to_string(image_path)
-    print('image_str\t', image_str)
+    # print('decrypted_message\t', hex_to_string(int(decrypted_message, 16)))
+    print('decrypted_message\t', hex_to_string(int(decrypted_message)))
+    # image_str = image_to_string(image_path)
+    # print('image_str\t', image_str)
 
-    encrypted_image_str = my_IDEA.encrypt_message(image_str)
-    decrypted_image_str = my_IDEA.decrypt_message(encrypted_image_str)
+    # encrypted_image_str = my_IDEA.encrypt_message(image_str)
+    # decrypted_image_str = my_IDEA.decrypt_message(encrypted_image_str)
     # print('decrypted_image_str\t', decrypted_image_str)
 
     # string_to_image(decrypted_image_str, 'decrypted_image.jpg')
