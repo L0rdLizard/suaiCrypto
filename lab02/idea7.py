@@ -194,7 +194,9 @@ class IDEA:
             block = encrypted_message[i:i+16]
             block = int(block, 16)
             decrypted_block = self.decrypt(block)
-            decrypted_message += hex(decrypted_block)[2:]
+            decrypted_block_str = hex_to_string(decrypted_block)
+            decrypted_message += decrypted_block_str
+            # decrypted_message += hex(decrypted_block)[2:]
         return decrypted_message
 
     # def decrypt_message(self, encrypted_message):
@@ -233,7 +235,7 @@ def main():
     print('key\t\t', hex(key))
 
     # plainStr = "HelloWorld123HiHiHi Hello"
-    plainStr = "To Sherlock Holmes she is always likes"
+    plainStr = "To Sherlock Holmes she is always"
     print(len(plainStr))
     # plain = string_to_hex(plainStr)
     # print('plaintext\t', hex(plain))
@@ -255,10 +257,11 @@ def main():
     print('encrypted_message_hex\t', encrypted_message)
 
     decrypted_message = my_IDEA.decrypt_message(encrypted_message)
-    print('decrypted_message_hex\t', decrypted_message)
+    print('decrypted_message\t', decrypted_message)
 
     # print('decrypted_message\t', hex_to_string(int(decrypted_message, 16)))
-    print('decrypted_message\t', hex_to_string(int(decrypted_message)))
+    # print('decrypted_message\t', hex_to_string(int(decrypted_message)))
+
     # image_str = image_to_string(image_path)
     # print('image_str\t', image_str)
 
