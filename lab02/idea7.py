@@ -184,22 +184,15 @@ class IDEA:
         encrypted_message = ''
         for i in range(0, len(message), 8):
             block = message[i:i + 8]
-            # if len(block) < 8:
-            #     block += '\x00' * (8 - len(block))
+
             block = string_to_hex(block)
-            # if len(block) % 2 != 0:
-            #     string = '0' + block
-            # print("block ", hex(block))
+
             encrypted_block = self.encrypt(block)
 
             encrypted_block_str = hex(encrypted_block)[2:]
             if len(encrypted_block_str)  != 16:
-                # encrypted_block_str = '0' + encrypted_block_str
                 encrypted_block_str = '0' * (16 - len(encrypted_block_str)) + encrypted_block_str
 
-            # print("encrypted_block ", hex(encrypted_block))
-            # print("encrypted_block ", encrypted_block_str)
-            # encrypted_message += hex(encrypted_block)[2:]
             encrypted_message += encrypted_block_str
         return encrypted_message
 
@@ -208,23 +201,12 @@ class IDEA:
         for i in range(0, len(encrypted_message), 16):
             block = encrypted_message[i:i + 16]
             block = int(block, 16)
-            # print("block ", hex(block))
+
             decrypted_block = self.decrypt(block)
-            # print("decrypted_block ", hex(decrypted_block))
+
             decrypted_block_str = hex_to_string(decrypted_block)
             decrypted_message += decrypted_block_str
-            # decrypted_message += hex(decrypted_block)[2:]
         return decrypted_message
-
-    # def decrypt_message(self, encrypted_message):
-    #     decrypted_message = ''
-    #     for i in range(0, len(encrypted_message), 16):
-    #         block = encrypted_message[i:i+16]
-    #         block = int(block, 16)
-    #         decrypted_block = self.decrypt(block)
-    #         decrypted_message += hex_to_string(decrypted_block)
-    #     return decrypted_message
-
 
 def string_to_hex(string):
     # if len(string) % 2 != 0:
@@ -237,28 +219,27 @@ def hex_to_string(hex_value):
         hex_str = '0' + hex_str
     return bytes.fromhex(hex_str).decode("cp1251")
 
-# def image_to_string(image_path):
-#     with open(image_path, 'rb') as image_file:
-#         encoded_string = base64.b64encode(image_file.read())
-#         return encoded_string.decode('cp1251')
-#
-# def string_to_image(image_string, image_path):
-#     decoded_string = base64.b64decode(image_string)
-#     image = Image.open(BytesIO(decoded_string))
-#     # return image
-#     image.save(image_path)
-
 def image_to_string(image_path):
-    image = Image.open(image_path)
-    pixels = list(image.getdata())
-    pixel_data = [p for p in pixels]
-    base64_data = base64.b64encode(bytes(pixel_data)).decode('cp1251')
-    return base64_data
+    with open(image_path, 'rb') as image_file:
+        encoded_string = base64.b64encode(image_file.read())
+        return encoded_string.decode('cp1251')
 
 def string_to_image(image_string, image_path):
     decoded_string = base64.b64decode(image_string)
     image = Image.open(BytesIO(decoded_string))
     image.save(image_path)
+
+# def image_to_string(image_path):
+#     image = Image.open(image_path)
+#     pixels = list(image.getdata())
+#     pixel_data = [p for p in pixels]
+#     base64_data = base64.b64encode(bytes(pixel_data)).decode('cp1251')
+#     return base64_data
+#
+# def string_to_image(image_string, image_path):
+#     decoded_string = base64.b64decode(image_string)
+#     image = Image.open(BytesIO(decoded_string))
+#     image.save(image_path)
 
 def main():
     key = 0x2BD6459F82C5B300952C49104881FF48
