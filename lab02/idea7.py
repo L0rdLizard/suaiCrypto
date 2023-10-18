@@ -184,13 +184,23 @@ class IDEA:
         encrypted_message = ''
         for i in range(0, len(message), 8):
             block = message[i:i + 8]
-            if len(block) < 8:
-                block += '\x00' * (8 - len(block))
+            # if len(block) < 8:
+            #     block += '\x00' * (8 - len(block))
             block = string_to_hex(block)
-            print("block ", hex(block))
+            # if len(block) % 2 != 0:
+            #     string = '0' + block
+            # print("block ", hex(block))
             encrypted_block = self.encrypt(block)
-            print("encrypted_block ", hex(encrypted_block))
-            encrypted_message += hex(encrypted_block)[2:]
+
+            encrypted_block_str = hex(encrypted_block)[2:]
+            if len(encrypted_block_str)  != 16:
+                # encrypted_block_str = '0' + encrypted_block_str
+                encrypted_block_str = '0' * (16 - len(encrypted_block_str)) + encrypted_block_str
+
+            # print("encrypted_block ", hex(encrypted_block))
+            # print("encrypted_block ", encrypted_block_str)
+            # encrypted_message += hex(encrypted_block)[2:]
+            encrypted_message += encrypted_block_str
         return encrypted_message
 
     def decrypt_message(self, encrypted_message):
@@ -198,9 +208,9 @@ class IDEA:
         for i in range(0, len(encrypted_message), 16):
             block = encrypted_message[i:i + 16]
             block = int(block, 16)
-            print("block ", hex(block))
+            # print("block ", hex(block))
             decrypted_block = self.decrypt(block)
-            print("decrypted_block ", hex(decrypted_block))
+            # print("decrypted_block ", hex(decrypted_block))
             decrypted_block_str = hex_to_string(decrypted_block)
             decrypted_message += decrypted_block_str
             # decrypted_message += hex(decrypted_block)[2:]
@@ -217,23 +227,37 @@ class IDEA:
 
 
 def string_to_hex(string):
-    return int(string.encode("utf-8").hex(), 16)
+    # if len(string) % 2 != 0:
+    #     string =  string + ' '
+    return int(string.encode("cp1251").hex(), 16)
 
 def hex_to_string(hex_value):
     hex_str = hex(hex_value)[2:]
     if len(hex_str) % 2 != 0:
         hex_str = '0' + hex_str
-    return bytes.fromhex(hex_str).decode("utf-8")
+    return bytes.fromhex(hex_str).decode("cp1251")
+
+# def image_to_string(image_path):
+#     with open(image_path, 'rb') as image_file:
+#         encoded_string = base64.b64encode(image_file.read())
+#         return encoded_string.decode('cp1251')
+#
+# def string_to_image(image_string, image_path):
+#     decoded_string = base64.b64decode(image_string)
+#     image = Image.open(BytesIO(decoded_string))
+#     # return image
+#     image.save(image_path)
 
 def image_to_string(image_path):
-    with open(image_path, 'rb') as image_file:
-        encoded_string = base64.b64encode(image_file.read())
-        return encoded_string.decode('utf-8')
+    image = Image.open(image_path)
+    pixels = list(image.getdata())
+    pixel_data = [p for p in pixels]
+    base64_data = base64.b64encode(bytes(pixel_data)).decode('cp1251')
+    return base64_data
 
 def string_to_image(image_string, image_path):
     decoded_string = base64.b64decode(image_string)
     image = Image.open(BytesIO(decoded_string))
-    # return image
     image.save(image_path)
 
 def main():
@@ -241,8 +265,8 @@ def main():
     image_path = 'image.jpg'
     print('key\t\t', hex(key))
 
-    # plainStr = "HelloWorld123HiHiHi Hello"
-    plainStr = "To Sherlock Holmes she is blways fgv"
+    # plainStr = "To Sherlock Holmes she is always the woman. I have seldom heard him mention her under any other name. In his eyes she eclipses and predominates the whole of her sex. It was not that he felt any emotion akin to love for Irene Adler. All emotions, and that one particularly, were abhorrent to his cold, precise but admirably balanced mind. He was, I take it, the most perfect reasoning and observing machine that the world has seen, but as a lover he would have placed himself in a false position. He never spoke of the softer passions, save with a gibe and a sneer. They were admirable things for the observer--excellent for drawing the veil from men's motives and actions. But for the trained reasoner to admit such intrusions into his own delicate and finely adjusted temperament was to introduce a distracting factor which might throw a doubt upon all his mental results. Grit in a sensitive instrument, or a crack in one of his own high-power lenses, would not be more disturbing than a strong emotion in a nature such as his. And yet there was but one woman to him, and that woman was the late Irene Adler, of dubious and questionable memory."
+    plainStr = "To Sherlock Holmes she is always fgv"
     print(len(plainStr))
     print('plainStr_hex\t', hex(string_to_hex(plainStr)))
     print('plaintext\t', plainStr)
@@ -259,14 +283,14 @@ def main():
     # print('decrypted_message\t', hex_to_string(int(decrypted_message, 16)))
     # print('decrypted_message\t', hex_to_string(int(decrypted_message)))
 
-    # image_str = image_to_string(image_path)
+    image_str = image_to_string(image_path)
     # print('image_str\t', image_str)
 
-    # encrypted_image_str = my_IDEA.encrypt_message(image_str)
-    # decrypted_image_str = my_IDEA.decrypt_message(encrypted_image_str)
+    encrypted_image_str = my_IDEA.encrypt_message(image_str)
+    decrypted_image_str = my_IDEA.decrypt_message(encrypted_image_str)
     # print('decrypted_image_str\t', decrypted_image_str)
 
-    # string_to_image(decrypted_image_str, 'decrypted_image.jpg')
+    string_to_image(decrypted_image_str, 'decrypted_image.jpg')
 
 if __name__ == '__main__':
     main()
