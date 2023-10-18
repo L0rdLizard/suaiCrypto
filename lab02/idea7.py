@@ -1,4 +1,5 @@
 import base64
+import binascii
 
 import numpy as np
 
@@ -182,18 +183,24 @@ class IDEA:
     def encrypt_message(self, message):
         encrypted_message = ''
         for i in range(0, len(message), 8):
-            block = message[i:i+8]
+            block = message[i:i + 8]
+            if len(block) < 8:
+                block += '\x00' * (8 - len(block))
             block = string_to_hex(block)
+            print("block ", hex(block))
             encrypted_block = self.encrypt(block)
+            print("encrypted_block ", hex(encrypted_block))
             encrypted_message += hex(encrypted_block)[2:]
         return encrypted_message
 
     def decrypt_message(self, encrypted_message):
         decrypted_message = ''
         for i in range(0, len(encrypted_message), 16):
-            block = encrypted_message[i:i+16]
+            block = encrypted_message[i:i + 16]
             block = int(block, 16)
+            print("block ", hex(block))
             decrypted_block = self.decrypt(block)
+            print("decrypted_block ", hex(decrypted_block))
             decrypted_block_str = hex_to_string(decrypted_block)
             decrypted_message += decrypted_block_str
             # decrypted_message += hex(decrypted_block)[2:]
@@ -235,23 +242,13 @@ def main():
     print('key\t\t', hex(key))
 
     # plainStr = "HelloWorld123HiHiHi Hello"
-    plainStr = "To Sherlock Holmes she is always"
+    plainStr = "To Sherlock Holmes she is blways fgv"
     print(len(plainStr))
-    # plain = string_to_hex(plainStr)
-    # print('plaintext\t', hex(plain))
+    print('plainStr_hex\t', hex(string_to_hex(plainStr)))
     print('plaintext\t', plainStr)
     print()
 
     my_IDEA = IDEA(key)
-
-    # encrypted = my_IDEA.encrypt(plain)
-    # print('encrypted\t', hex(encrypted))
-    # print()
-    #
-    # decrypted = my_IDEA.decrypt(encrypted)
-    # decryptedStr = hex_to_string(decrypted)
-    # print('decrypted\t', hex(decrypted))
-    # print('decrypted\t', decryptedStr)
 
     encrypted_message = my_IDEA.encrypt_message(plainStr)
     print('encrypted_message_hex\t', encrypted_message)
