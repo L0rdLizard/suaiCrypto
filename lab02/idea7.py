@@ -5,6 +5,8 @@ import numpy as np
 
 from PIL import Image
 from io import BytesIO
+
+
 class IDEA:
     def __init__(self, key):
         self._keys = None
@@ -65,24 +67,24 @@ class IDEA:
     def round(self, p1, p2, p3, p4, keys):
         k1, k2, k3, k4, k5, k6 = keys
 
-        p1 = self.mul_mod(p1, k1) # 1
-        p2 = self.add_mod(p2, k2) # 2
-        p3 = self.add_mod(p3, k3) # 3
-        p4 = self.mul_mod(p4, k4) # 4
+        p1 = self.mul_mod(p1, k1)  # 1
+        p2 = self.add_mod(p2, k2)  # 2
+        p3 = self.add_mod(p3, k3)  # 3
+        p4 = self.mul_mod(p4, k4)  # 4
 
-        x = p1 ^ p3 # 5
-        t0 = self.mul_mod(k5, x) # 7
-        x = p2 ^ p4 # 6
+        x = p1 ^ p3  # 5
+        t0 = self.mul_mod(k5, x)  # 7
+        x = p2 ^ p4  # 6
 
-        x = self.add_mod(t0, x) # 8
+        x = self.add_mod(t0, x)  # 8
 
-        t1 = self.mul_mod(k6, x) # 9
-        t2 = self.add_mod(t0, t1) # 10
+        t1 = self.mul_mod(k6, x)  # 9
+        t2 = self.add_mod(t0, t1)  # 10
 
-        r1 = p1 ^ t1 # 11
-        r2 = p3 ^ t1 # 12
-        r3 = p2 ^ t2 # 13
-        r4 = p4 ^ t2 # 14
+        r1 = p1 ^ t1  # 11
+        r2 = p3 ^ t1  # 12
+        r3 = p2 ^ t2  # 13
+        r4 = p4 ^ t2  # 14
 
         # return p1, p2, p3, p4
         return r1, r2, r3, r4
@@ -190,7 +192,7 @@ class IDEA:
             encrypted_block = self.encrypt(block)
 
             encrypted_block_str = hex(encrypted_block)[2:]
-            if len(encrypted_block_str)  != 16:
+            if len(encrypted_block_str) != 16:
                 encrypted_block_str = '0' * (16 - len(encrypted_block_str)) + encrypted_block_str
 
             encrypted_message += encrypted_block_str
@@ -259,10 +261,12 @@ class IDEA:
 
         return decrypted_image_data
 
+
 def string_to_hex(string):
     # if len(string) % 2 != 0:
     #     string =  string + ' '
     return int(string.encode("cp1251").hex(), 16)
+
 
 def hex_to_string(hex_value):
     hex_str = hex(hex_value)[2:]
@@ -270,19 +274,23 @@ def hex_to_string(hex_value):
         hex_str = '0' + hex_str
     return bytes.fromhex(hex_str).decode("cp1251")
 
+
 def image_to_string(image_path):
     with open(image_path, 'rb') as image_file:
         encoded_string = base64.b64encode(image_file.read())
         return encoded_string.decode('cp1251')
+
 
 def string_to_image(image_string, image_path):
     decoded_string = base64.b64decode(image_string)
     image = Image.open(BytesIO(decoded_string))
     image.save(image_path)
 
+
 def save_encrypted_image(encrypted_image_data, output_path):
     image = Image.open(BytesIO(encrypted_image_data))
     image.save(output_path, 'JPEG')
+
 
 # def image_to_string(image_path):
 #     image = Image.open(image_path)
@@ -316,7 +324,6 @@ def main():
     decrypted_message = my_IDEA.decrypt_message(encrypted_message)
     print('decrypted_message\t', decrypted_message)
 
-
     # image_str = image_to_string(image_path)
     #
     # encrypted_image_str = my_IDEA.encrypt_message(image_str)
@@ -326,12 +333,16 @@ def main():
     # string_to_image(decrypted_image_str, 'decrypted_image.jpg')
 
     encrypted_image = my_IDEA.encrypt_image(image_path)
-    save_encrypted_image(encrypted_image, 'encrypted_image.jpg')
-    # with open('encrypted_image.jpg', 'wb') as image_file:
-    #     image_file.write(encrypted_image)
+    # save_encrypted_image(encrypted_image, 'encrypted_image.jpg')
+    # string_to_image(encrypted_image, 'encrypted_image.jpg')
+
+    with open('encrypted_image.jpg', 'wb') as image_file:
+        image_file.write(encrypted_image)
 
     decrypted_image = my_IDEA.decrypt_image(encrypted_image)
     with open('decrypted_image.jpg', 'wb') as image_file:
         image_file.write(decrypted_image)
+
+
 if __name__ == '__main__':
     main()
