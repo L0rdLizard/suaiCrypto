@@ -212,7 +212,7 @@ class IDEA:
 
     def encrypt_image(self, image_path):
         with open(image_path, 'rb') as image_file:
-            header = image_file.read(54)  # Read the header (first 54 bytes) of the image
+            header = image_file.read(5699)  # Read the header (first 54 bytes) of the image
             image_data = image_file.read()
 
         # Convert the image data to a string
@@ -220,6 +220,7 @@ class IDEA:
         message = encoded_string.decode('cp1251')
 
         encrypted_message = ''
+        # encrypted_message = self.encrypt_message(message)
         for i in range(0, len(message), 8):
             block = message[i:i + 8]
 
@@ -228,6 +229,7 @@ class IDEA:
             encrypted_block = self.encrypt(block)
 
             encrypted_block_str = hex(encrypted_block)[2:]
+            # encrypted_block_str = format(encrypted_block, '016x')
             if len(encrypted_block_str) != 16:
                 encrypted_block_str = '0' * (16 - len(encrypted_block_str)) + encrypted_block_str
 
@@ -239,8 +241,8 @@ class IDEA:
         return encrypted_image_data
 
     def decrypt_image(self, encrypted_image_data):
-        header = encrypted_image_data[:54]  # Extract the header (first 54 bytes) of the encrypted image
-        encrypted_message = encrypted_image_data[54:].hex()
+        header = encrypted_image_data[:5699]  # Extract the header (first 54 bytes) of the encrypted image
+        encrypted_message = encrypted_image_data[5699:].hex()
 
         decrypted_message = ''
         for i in range(0, len(encrypted_message), 16):
@@ -287,10 +289,20 @@ def string_to_image(image_string, image_path):
     image.save(image_path)
 
 
-def save_encrypted_image(encrypted_image_data, output_path):
-    image = Image.open(BytesIO(encrypted_image_data))
-    image.save(output_path, 'JPEG')
+# def save_encrypted_image(encrypted_image_data, output_path):
+#     image = Image.open(BytesIO(encrypted_image_data))
+#     image.save(output_path, 'JPEG')
 
+def save_encrypted_image(encrypted_image_data, output_path):
+    with open(output_path, 'wb') as image_file:
+        image_file.write(encrypted_image_data)
+
+def decode_base64(encoded_data):
+    header = encoded_data[:54]  # Extract the header (first 54 bytes) of the encrypted image
+    encoded_data = encoded_data[54:]
+    decoded_data = base64.b64decode(encoded_data)
+    decoded_data = header + decoded_data
+    return decoded_data
 
 # def image_to_string(image_path):
 #     image = Image.open(image_path)
@@ -324,24 +336,20 @@ def main():
     decrypted_message = my_IDEA.decrypt_message(encrypted_message)
     print('decrypted_message\t', decrypted_message)
 
-    # image_str = image_to_string(image_path)
-    #
-    # encrypted_image_str = my_IDEA.encrypt_message(image_str)
-    #
-    # decrypted_image_str = my_IDEA.decrypt_message(encrypted_image_str)
-
-    # string_to_image(decrypted_image_str, 'decrypted_image.jpg')
 
     encrypted_image = my_IDEA.encrypt_image(image_path)
-    # save_encrypted_image(encrypted_image, 'encrypted_image.jpg')
-    # string_to_image(encrypted_image, 'encrypted_image.jpg')
+    # encrypted_image1 = decode_base64(encrypted_image)
+    # with open('encrypted_image.jpg', 'wb') as image_file:
+    #     image_file.write(encrypted_image)
+    print('encrypted_image\t', encrypted_image.hex()[:200])
 
-    with open('encrypted_image.jpg', 'wb') as image_file:
-        image_file.write(encrypted_image)
+    save_encrypted_image(encrypted_image, 'encrypted_image.jpg')
+    # string_to_image(encrypted_image, 'encrypted_image.jpg')
 
     decrypted_image = my_IDEA.decrypt_image(encrypted_image)
     with open('decrypted_image.jpg', 'wb') as image_file:
         image_file.write(decrypted_image)
+    print('decrypted_image\t', decrypted_image.hex()[:200])
 
 
 if __name__ == '__main__':
