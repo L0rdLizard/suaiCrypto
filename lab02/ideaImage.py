@@ -105,7 +105,7 @@ class IDEA:
             keys.append(tuple(round_keys))
         self._keys = tuple(keys)
 
-    def encrypt(self, plain):
+    def encrypt(self, plain: bytes):
         plain_int = int.from_bytes(plain, 'big')
         p1 = (plain_int >> 48) & 0xFFFF
         p2 = (plain_int >> 32) & 0xFFFF
@@ -311,8 +311,6 @@ class IDEA:
 
 
 def string_to_hex(string):
-    # if len(string) % 2 != 0:
-    #     string =  string + ' '
     return int(string.encode("cp1251").hex(), 16)
 
 
@@ -335,10 +333,6 @@ def string_to_image(image_string, image_path):
     image.save(image_path)
 
 
-# def save_encrypted_image(encrypted_image_data, output_path):
-#     image = Image.open(BytesIO(encrypted_image_data))
-#     image.save(output_path, 'JPEG')
-
 def save_encrypted_image(encrypted_image_data, output_path):
     with open(output_path, 'wb') as image_file:
         image_file.write(encrypted_image_data)
@@ -350,39 +344,12 @@ def decode_base64(encoded_data):
     decoded_data_result = header + decoded_data_temp
     return decoded_data_result
 
-# def image_to_string(image_path):
-#     image = Image.open(image_path)
-#     pixels = list(image.getdata())
-#     pixel_data = [p for p in pixels]
-#     base64_data = base64.b64encode(bytes(pixel_data)).decode('cp1251')
-#     return base64_data
-#
-# def string_to_image(image_string, image_path):
-#     decoded_string = base64.b64decode(image_string)
-#     image = Image.open(BytesIO(decoded_string))
-#     image.save(image_path)
-
 def main():
     key = 0x2BD6459F82C5B300952C49104881FF48
     image_path = 'image.jpg'
     print('key\t\t', hex(key))
 
     my_IDEA = IDEA(key)
-
-    # plainStr = "To Sherlock Holmes she is always the woman. I have seldom heard him mention her under any other name. In his eyes she eclipses and predominates the whole of her sex. It was not that he felt any emotion akin to love for Irene Adler. All emotions, and that one particularly, were abhorrent to his cold, precise but admirably balanced mind. He was, I take it, the most perfect reasoning and observing machine that the world has seen, but as a lover he would have placed himself in a false position. He never spoke of the softer passions, save with a gibe and a sneer. They were admirable things for the observer--excellent for drawing the veil from men's motives and actions. But for the trained reasoner to admit such intrusions into his own delicate and finely adjusted temperament was to introduce a distracting factor which might throw a doubt upon all his mental results. Grit in a sensitive instrument, or a crack in one of his own high-power lenses, would not be more disturbing than a strong emotion in a nature such as his. And yet there was but one woman to him, and that woman was the late Irene Adler, of dubious and questionable memory."
-    # plainStr = "To Sherlock Holmes she is always fgv"
-    # print(len(plainStr))
-    # print('plainStr_hex\t', hex(string_to_hex(plainStr)))
-    # print('plaintext\t', plainStr)
-    # print()
-    #
-    #
-    #
-    # encrypted_message = my_IDEA.encrypt_message(plainStr)
-    # print('encrypted_message_hex\t', encrypted_message)
-    #
-    # decrypted_message = my_IDEA.decrypt_message(encrypted_message)
-    # print('decrypted_message\t', decrypted_message)
 
 
     encrypted_image = my_IDEA.encrypt_image(image_path)
