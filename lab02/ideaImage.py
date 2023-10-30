@@ -218,6 +218,45 @@ class IDEA:
             decrypted_message += decrypted_block_str
         return decrypted_message
 
+    #
+
+    # def encrypt_cbc(self, plaintext, iv):
+    #     """
+    #     Encrypts `plaintext` using CBC mode and PKCS#7 padding, with the given
+    #     initialization vector (iv).
+    #     """
+    #     assert len(iv) == 16
+    #
+    #     plaintext = pad(plaintext)
+    #
+    #     blocks = []
+    #     previous = iv
+    #     for plaintext_block in split_blocks(plaintext):
+    #         # CBC mode encrypt: encrypt(plaintext_block XOR previous)
+    #         block = self.encrypt_block(xor_bytes(plaintext_block, previous))
+    #         blocks.append(block)
+    #         previous = block
+    #
+    #     return b''.join(blocks)
+    #
+    # def decrypt_cbc(self, ciphertext, iv):
+    #     """
+    #     Decrypts `ciphertext` using CBC mode and PKCS#7 padding, with the given
+    #     initialization vector (iv).
+    #     """
+    #     assert len(iv) == 16
+    #
+    #     blocks = []
+    #     previous = iv
+    #     for ciphertext_block in split_blocks(ciphertext):
+    #         # CBC mode decrypt: previous XOR decrypt(ciphertext)
+    #         blocks.append(
+    #             xor_bytes(previous, self.decrypt_block(ciphertext_block)))
+    #         previous = ciphertext_block
+    #
+    #     return unpad(b''.join(blocks))
+
+
 
     def encrypt_image(self, input_filename, output_filename):
         header_size = 14 + 40
@@ -327,6 +366,7 @@ def main():
 
     my_IDEA = IDEA(key)
 
+    # plainStr = "To Sherlock Holmes she is always the woman. I have seldom heard him mention her under any other name. In his eyes she eclipses and predominates the whole of her sex. It was not that he felt any emotion akin to love for Irene Adler. All emotions, and that one particularly, were abhorrent to his cold, precise but admirably balanced mind. He was, I take it, the most perfect reasoning and observing machine that the world has seen, but as a lover he would have placed himself in a false position. He never spoke of the softer passions, save with a gibe and a sneer. They were admirable things for the observer--excellent for drawing the veil from men's motives and actions. But for the trained reasoner to admit such intrusions into his own delicate and finely adjusted temperament was to introduce a distracting factor which might throw a doubt upon all his mental results. Grit in a sensitive instrument, or a crack in one of his own high-power lenses, would not be more disturbing than a strong emotion in a nature such as his. And yet there was but one woman to him, and that woman was the late Irene Adler, of dubious and questionable memory."
     plainStr = "To Sherlock Holmes she is always fgv"
     print(len(plainStr))
     print('plainStr_hex\t', hex(string_to_hex(plainStr)))

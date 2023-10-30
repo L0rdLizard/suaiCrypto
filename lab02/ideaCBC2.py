@@ -1,16 +1,18 @@
 import base64
-import secrets
 import binascii
+import secrets
 from loguru import logger
 
 import numpy as np
 
 from PIL import Image
 from io import BytesIO
-class IDEA_CBC:
-    def __init__(self, key, iv: bytes):
-        self._keys = None
+
+
+class IDEA:
+    def __init__(self, key, iv):
         self._iv = iv
+        self._keys = None
         self.gen_keys(key)
 
     def mul_mod(self, a, b):
@@ -106,14 +108,16 @@ class IDEA_CBC:
             keys.append(tuple(round_keys))
         self._keys = tuple(keys)
 
-    @logger.catch
-    def encrypt(self, plain):
-        # plain_int = plain
+    def encrypt(self, plain: bytes):
         plain_int = int.from_bytes(plain, 'big')
         p1 = (plain_int >> 48) & 0xFFFF
         p2 = (plain_int >> 32) & 0xFFFF
         p3 = (plain_int >> 16) & 0xFFFF
         p4 = plain_int & 0xFFFF
+        # p1 = (plain >> 48) & 0xFFFF
+        # p2 = (plain >> 32) & 0xFFFF
+        # p3 = (plain >> 16) & 0xFFFF
+        # p4 = plain & 0xFFFF
 
         # 8 циклов
         for i in range(8):
@@ -128,15 +132,18 @@ class IDEA_CBC:
         y4 = self.mul_mod(p4, k4)
 
         encrypted = (y1 << 48) | (y2 << 32) | (y3 << 16) | y4
-        return encrypted.to_bytes(16, 'big')
+        return encrypted
 
-    def decrypt(self, encrypted):
+    def decrypt(self, encrypted : bytes):
         encrypted_int = int.from_bytes(encrypted, 'big')
-        # encrypted_int = encrypted
         p1 = (encrypted_int >> 48) & 0xFFFF
         p2 = (encrypted_int >> 32) & 0xFFFF
         p3 = (encrypted_int >> 16) & 0xFFFF
         p4 = encrypted_int & 0xFFFF
+        # p1 = (encrypted >> 48) & 0xFFFF
+        # p2 = (encrypted >> 32) & 0xFFFF
+        # p3 = (encrypted >> 16) & 0xFFFF
+        # p4 = encrypted & 0xFFFF
 
         # Round 1
         keys = self._keys[8]
@@ -186,104 +193,14 @@ class IDEA_CBC:
         y3 = self.add_mod(p2, k3)
         y4 = self.mul_mod(p4, k4)
         decrypted = (y1 << 48) | (y2 << 32) | (y3 << 16) | y4
-        return decrypted.to_bytes(16, 'big')
-
-    # def encrypt_message_cbc(self, plain: bytes):
-    #     # Разбиваем открытый текст на блоки
-    #     blocks = [plain[i:i + 16] for i in range(0, len(plain), 16)]
-    #
-    #     # Инициализируем предыдущий зашифрованный блок начальным вектором
-    #     prev_block = int.from_bytes(self._iv, 'big')
-    #     # prev_block = self._iv
-    #
-    #     encrypted_data = b''
-    #
-    #     for block in blocks:
-    #         # XOR текущего блока с предыдущим зашифрованным блоком
-    #         block_int = int.from_bytes(block, 'big') ^ prev_block
-    #         # block_int = block ^ prev_block
-    #         # block_bytes = xor_bytes(block, prev_block)
-    #
-    #         # Здесь вы можете использовать ваш алгоритм шифрования, например, ECB
-    #         # block_bytes = block_int.to_bytes(16, 'big')
-    #         block_int = self.encrypt(block_int)
-    #
-    #         # Сохраняем зашифрованный блок для использования в следующей итерации
-    #         prev_block = block_int
-    #
-    #         # Преобразуем зашифрованный блок обратно в байты и добавляем к результату
-    #         encrypted_data += block_int.to_bytes(16, 'big')
-    #
-    #     return encrypted_data
-    #
-    # def decrypt_message_cbc(self, encrypted: bytes):
-    #     # Разбиваем зашифрованные данные на блоки
-    #     blocks = [encrypted[i:i + 16] for i in range(0, len(encrypted), 16)]
-    #
-    #     # Инициализируем предыдущий зашифрованный блок начальным вектором
-    #     prev_block = int.from_bytes(self._iv, 'big')
-    #     print(self._iv)
-    #     print(prev_block)
-    #
-    #     decrypted_data = b''
-    #
-    #     for block in blocks:
-    #         # Здесь вы можете использовать ваш метод для расшифровки блока
-    #         block_int = self.decrypt(int.from_bytes(block, 'big'))
-    #         # block_int = self.decrypt(block)
-    #
-    #         # XOR расшифрованного блока с предыдущим зашифрованным блоком
-    #         # print(block_int, prev_block)
-    #         decrypted_block = block_int ^ prev_block
-    #         # print(decrypted_block)
-    #
-    #         # Сохраняем предыдущий зашифрованный блок для следующей итерации
-    #         prev_block = int.from_bytes(block, 'big')
-    #
-    #         # Преобразуем расшифрованный блок обратно в байты и добавляем к результату
-    #         decrypted_data += decrypted_block.to_bytes(16, 'big')
-    #
-    #     return decrypted_data
-
-    def encrypt_message_cbc(self, plaintext):
-        """
-        Encrypts `plaintext` using CBC mode and PKCS#7 padding, with the given
-        initialization vector (iv).
-        """
-        assert len(self._iv) == 16
-
-        plaintext = pad(plaintext)
-
-        blocks = []
-        previous = self._iv
-        for plaintext_block in split_blocks(plaintext):
-            # CBC mode encrypt: encrypt(plaintext_block XOR previous)
-            block = self.encrypt(xor_bytes(plaintext_block, previous))
-            blocks.append(block)
-            previous = block
-
-        return b''.join(blocks)
-
-    def decrypt_message_cbc(self, ciphertext):
-        """
-        Decrypts `ciphertext` using CBC mode and PKCS#7 padding, with the given
-        initialization vector (iv).
-        """
-        assert len(self._iv) == 16
-
-        blocks = []
-        previous = self._iv
-        for ciphertext_block in split_blocks(ciphertext):
-            # CBC mode decrypt: previous XOR decrypt(ciphertext)
-            blocks.append(xor_bytes(previous, self.decrypt(ciphertext_block)))
-            previous = ciphertext_block
-
-        return unpad(b''.join(blocks))
+        return decrypted
 
     def encrypt_message(self, message):
         encrypted_message = b''
+        previous = self._iv
         for i in range(0, len(message), 8):
-            block = message[i:i + 8]
+            # block = message[i:i + 8]
+            block = xor_bytes(message[i:i + 8], previous, 8)
 
             encrypted_block = self.encrypt(block)
 
@@ -291,20 +208,65 @@ class IDEA_CBC:
             if len(encrypted_block_str) != 16:
                 encrypted_block_str = b'0' * (16 - len(encrypted_block_str)) + encrypted_block_str
 
+            previous = encrypted_block_str
+
             encrypted_message += encrypted_block_str
         return encrypted_message
 
     def decrypt_message(self, encrypted_message):
         decrypted_message = ''
+        previous = self._iv
         for i in range(0, len(encrypted_message), 16):
             block = encrypted_message[i:i + 16]
             # block = int(block, 16)
 
             decrypted_block = self.decrypt(block)
 
-            decrypted_block_str = hex_to_string(decrypted_block)
+            decrypted_block_xor = xor_bytes(decrypted_block.to_bytes(8, 'big'), previous, 16)
+
+            # decrypted_block_str = hex_to_string(decrypted_block)
+            decrypted_block_str = decrypted_block_xor.decode('cp1251')
             decrypted_message += decrypted_block_str
         return decrypted_message
+
+    #
+
+    # def encrypt_cbc(self, plaintext, iv):
+    #     """
+    #     Encrypts `plaintext` using CBC mode and PKCS#7 padding, with the given
+    #     initialization vector (iv).
+    #     """
+    #     assert len(iv) == 16
+    #
+    #     plaintext = pad(plaintext)
+    #
+    #     blocks = []
+    #     previous = iv
+    #     for plaintext_block in split_blocks(plaintext):
+    #         # CBC mode encrypt: encrypt(plaintext_block XOR previous)
+    #         block = self.encrypt_block(xor_bytes(plaintext_block, previous))
+    #         blocks.append(block)
+    #         previous = block
+    #
+    #     return b''.join(blocks)
+    #
+    # def decrypt_cbc(self, ciphertext, iv):
+    #     """
+    #     Decrypts `ciphertext` using CBC mode and PKCS#7 padding, with the given
+    #     initialization vector (iv).
+    #     """
+    #     assert len(iv) == 16
+    #
+    #     blocks = []
+    #     previous = iv
+    #     for ciphertext_block in split_blocks(ciphertext):
+    #         # CBC mode decrypt: previous XOR decrypt(ciphertext)
+    #         blocks.append(
+    #             xor_bytes(previous, self.decrypt_block(ciphertext_block)))
+    #         previous = ciphertext_block
+    #
+    #     return unpad(b''.join(blocks))
+
 
 
     def encrypt_image(self, input_filename, output_filename):
@@ -372,13 +334,22 @@ class IDEA_CBC:
         with open(output_filename, 'wb') as output_file:
             output_file.write(new_bmp_content)
 
-@logger.catch
-def xor_bytes(ba1, ba2):
-    return bytes([_a ^ _b for _a, _b in zip(ba1, ba2)])
 
 
 def string_to_hex(string):
     return int(string.encode("cp1251").hex(), 16)
+
+@logger.catch
+def xor_bytes(ba1, ba2, length):
+    print(len(ba1), len(ba2))
+    # return bytes([_a ^ _b for _a, _b in zip(ba1, ba2)])
+    # assume ba1 and ba2 is 64 bytes, convert to int
+    int1 = int.from_bytes(ba1, 'big')
+    int2 = int.from_bytes(ba2, 'big')
+    # xor
+    int3 = int1 ^ int2
+    # convert back to bytes
+    return int3.to_bytes(length, 'big')
 
 
 def hex_to_string(hex_value):
@@ -411,42 +382,13 @@ def decode_base64(encoded_data):
     decoded_data_result = header + decoded_data_temp
     return decoded_data_result
 
-def pad(plaintext):
-    """
-    Pads the given plaintext with PKCS#7 padding to a multiple of 16 bytes.
-    Note that if the plaintext size is a multiple of 16,
-    a whole block will be added.
-    """
-    padding_len = 16 - (len(plaintext) % 16)
-    padding = bytes([padding_len] * padding_len)
-    return plaintext + padding
-
-@logger.catch
-def unpad(plaintext):
-    """
-    Removes a PKCS#7 padding, returning the unpadded text and ensuring the
-    padding was correct.
-    """
-    padding_len = plaintext[-1]
-    assert padding_len > 0
-    message, padding = plaintext[:-padding_len], plaintext[-padding_len:]
-    # assert all(p == padding_len for p in padding)
-    return message
-
-
-def split_blocks(message, block_size=16, require_padding=True):
-    assert len(message) % block_size == 0 or not require_padding
-    return [message[i:i+16] for i in range(0, len(message), block_size)]
-
 def main():
     key = 0x2BD6459F82C5B300952C49104881FF48
-    # iv = b'\x00' * 16
-    iv = secrets.token_bytes(16)
-    print('iv\t\t', iv)
     image_path = 'smile.bmp'
+    iv = secrets.token_bytes(16)
     print('key\t\t', hex(key))
 
-    my_IDEA = IDEA_CBC(key, iv)
+    my_IDEA = IDEA(key, iv)
 
     # plainStr = "To Sherlock Holmes she is always the woman. I have seldom heard him mention her under any other name. In his eyes she eclipses and predominates the whole of her sex. It was not that he felt any emotion akin to love for Irene Adler. All emotions, and that one particularly, were abhorrent to his cold, precise but admirably balanced mind. He was, I take it, the most perfect reasoning and observing machine that the world has seen, but as a lover he would have placed himself in a false position. He never spoke of the softer passions, save with a gibe and a sneer. They were admirable things for the observer--excellent for drawing the veil from men's motives and actions. But for the trained reasoner to admit such intrusions into his own delicate and finely adjusted temperament was to introduce a distracting factor which might throw a doubt upon all his mental results. Grit in a sensitive instrument, or a crack in one of his own high-power lenses, would not be more disturbing than a strong emotion in a nature such as his. And yet there was but one woman to him, and that woman was the late Irene Adler, of dubious and questionable memory."
     plainStr = "To Sherlock Holmes she is always fgv"
@@ -456,17 +398,16 @@ def main():
     print()
 
 
-    encrypted_message = my_IDEA.encrypt_message_cbc(plainStr.encode('cp1251'))
+    encrypted_message = my_IDEA.encrypt_message(plainStr.encode('cp1251'))
     print('encrypted_message_hex\t', encrypted_message)
 
-    decrypted_message = my_IDEA.decrypt_message_cbc(encrypted_message)
-    print('decrypted_message\t', decrypted_message.decode('cp1251'))
+    decrypted_message = my_IDEA.decrypt_message(encrypted_message)
     print('decrypted_message\t', decrypted_message)
 
 
-    # my_IDEA.encrypt_image(image_path, 'encrypted_image.bmp')
-    #
-    # my_IDEA.decrypt_image('encrypted_image.bmp', 'decrypted_image.bmp')
+    my_IDEA.encrypt_image(image_path, 'encrypted_image.bmp')
+
+    my_IDEA.decrypt_image('encrypted_image.bmp', 'decrypted_image.bmp')
 
 
 if __name__ == '__main__':
