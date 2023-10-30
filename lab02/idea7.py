@@ -106,15 +106,15 @@ class IDEA:
         self._keys = tuple(keys)
 
     def encrypt(self, plain):
-        plain_int = int.from_bytes(plain, 'big')
-        p1 = (plain_int >> 48) & 0xFFFF
-        p2 = (plain_int >> 32) & 0xFFFF
-        p3 = (plain_int >> 16) & 0xFFFF
-        p4 = plain_int & 0xFFFF
-        # p1 = (plain >> 48) & 0xFFFF
-        # p2 = (plain >> 32) & 0xFFFF
-        # p3 = (plain >> 16) & 0xFFFF
-        # p4 = plain & 0xFFFF
+        # plain_int = int.from_bytes(plain, 'big')
+        # p1 = (plain_int >> 48) & 0xFFFF
+        # p2 = (plain_int >> 32) & 0xFFFF
+        # p3 = (plain_int >> 16) & 0xFFFF
+        # p4 = plain_int & 0xFFFF
+        p1 = (plain >> 48) & 0xFFFF
+        p2 = (plain >> 32) & 0xFFFF
+        p3 = (plain >> 16) & 0xFFFF
+        p4 = plain & 0xFFFF
 
         # 8 циклов
         for i in range(8):
@@ -215,99 +215,61 @@ class IDEA:
             decrypted_message += decrypted_block_str
         return decrypted_message
 
-    # def encrypt_image(self, image_path):
-    #     with open(image_path, 'rb') as image_file:
-    #         header = image_file.read(128)  # Read the header (first 54 bytes) of the image 5699
-    #         image_data = image_file.read()
-    #
-    #     # Convert the image data to a string
-    #     encoded_string = base64.b64encode(image_data)
-    #     message = encoded_string.decode('cp1251')
-    #
-    #     encrypted_message = ''
-    #     # encrypted_message = self.encrypt_message(message)
-    #     for i in range(0, len(message), 8):
-    #         block = message[i:i + 8]
-    #
-    #         block = string_to_hex(block)
-    #
-    #         encrypted_block = self.encrypt(block)
-    #
-    #         encrypted_block_str = hex(encrypted_block)[2:]
-    #         # encrypted_block_str = format(encrypted_block, '016x')
-    #         if len(encrypted_block_str) != 16:
-    #             encrypted_block_str = '0' * (16 - len(encrypted_block_str)) + encrypted_block_str
-    #
-    #         encrypted_message += encrypted_block_str
-    #
-    #     # Combine the header and the encrypted message
-    #     encrypted_image_data = header + bytes.fromhex(encrypted_message)
-    #
-    #     return encrypted_image_data
-
-
-    # def decrypt_image(self, encrypted_image_data):
-    #     header = encrypted_image_data[:128]  # Extract the header (first 54 bytes) of the encrypted image
-    #     encrypted_message = encrypted_image_data[128:].hex()
-    #
-    #     decrypted_message = ''
-    #     for i in range(0, len(encrypted_message), 16):
-    #         block = encrypted_message[i:i + 16]
-    #         block = int(block, 16)
-    #
-    #         decrypted_block = self.decrypt(block)
-    #
-    #         decrypted_block_str = hex_to_string(decrypted_block)
-    #         decrypted_message += decrypted_block_str
-    #
-    #     # Convert the decrypted message back to image data
-    #     decoded_string = decrypted_message.encode('cp1251')
-    #     image_data = base64.b64decode(decoded_string)
-    #
-    #     # Combine the header and the decrypted image data
-    #     decrypted_image_data = header + image_data
-    #
-    #     return decrypted_image_data
-
-
     def encrypt_image(self, image_path):
         with open(image_path, 'rb') as image_file:
-            header = image_file.read(128)  # Read the header (first 128 bytes) of the image
+            header = image_file.read(128)  # Read the header (first 54 bytes) of the image 5699
             image_data = image_file.read()
 
-        encrypted_message = b''
-        for i in range(0, len(image_data), 8):
-            block = image_data[i:i + 8]
+        # Convert the image data to a string
+        encoded_string = base64.b64encode(image_data)
+        message = encoded_string.decode('cp1251')
+
+        encrypted_message = ''
+        # encrypted_message = self.encrypt_message(message)
+        for i in range(0, len(message), 8):
+            block = message[i:i + 8]
+
+            block = string_to_hex(block)
 
             encrypted_block = self.encrypt(block)
 
-            encrypted_block_bytes = encrypted_block.to_bytes(8, 'big')  # Convert encrypted_block to bytes
+            encrypted_block_str = hex(encrypted_block)[2:]
+            # encrypted_block_str = format(encrypted_block, '016x')
+            if len(encrypted_block_str) != 16:
+                encrypted_block_str = '0' * (16 - len(encrypted_block_str)) + encrypted_block_str
 
-            encrypted_message += encrypted_block_bytes
+            encrypted_message += encrypted_block_str
 
-        encrypted_image_data = header + encrypted_message
+        # Combine the header and the encrypted message
+        encrypted_image_data = header + bytes.fromhex(encrypted_message)
 
         return encrypted_image_data
 
+
     def decrypt_image(self, encrypted_image_data):
-        header = encrypted_image_data[:128]  # Extract the header (first 128 bytes) of the encrypted image
-        encrypted_message = encrypted_image_data[128:]
+        header = encrypted_image_data[:128]  # Extract the header (first 54 bytes) of the encrypted image
+        encrypted_message = encrypted_image_data[128:].hex()
 
-        decrypted_message = b''
-        for i in range(0, len(encrypted_message), 8):
-            block = encrypted_message[i:i + 8]
-            block_int = int.from_bytes(block, 'big')
+        decrypted_message = ''
+        for i in range(0, len(encrypted_message), 16):
+            block = encrypted_message[i:i + 16]
+            block = int(block, 16)
 
-            decrypted_block = self.decrypt(block_int)
+            decrypted_block = self.decrypt(block)
 
-            decrypted_block_bytes = decrypted_block.to_bytes(8, 'big')
-            decrypted_message += decrypted_block_bytes
+            decrypted_block_str = hex_to_string(decrypted_block)
+            decrypted_message += decrypted_block_str
 
-        image_data = base64.b64decode(decrypted_message)
+        # Convert the decrypted message back to image data
+        decoded_string = decrypted_message.encode('cp1251')
+        image_data = base64.b64decode(decoded_string)
 
+        # Combine the header and the decrypted image data
         decrypted_image_data = header + image_data
 
         return decrypted_image_data
+
+
 
 
 def string_to_hex(string):

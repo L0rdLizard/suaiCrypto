@@ -131,11 +131,16 @@ class IDEA:
         encrypted = (y1 << 48) | (y2 << 32) | (y3 << 16) | y4
         return encrypted
 
-    def decrypt(self, encrypted):
-        p1 = (encrypted >> 48) & 0xFFFF
-        p2 = (encrypted >> 32) & 0xFFFF
-        p3 = (encrypted >> 16) & 0xFFFF
-        p4 = encrypted & 0xFFFF
+    def decrypt(self, encrypted : bytes):
+        encrypted_int = int.from_bytes(encrypted, 'big')
+        p1 = (encrypted_int >> 48) & 0xFFFF
+        p2 = (encrypted_int >> 32) & 0xFFFF
+        p3 = (encrypted_int >> 16) & 0xFFFF
+        p4 = encrypted_int & 0xFFFF
+        # p1 = (encrypted >> 48) & 0xFFFF
+        # p2 = (encrypted >> 32) & 0xFFFF
+        # p3 = (encrypted >> 16) & 0xFFFF
+        # p4 = encrypted & 0xFFFF
 
         # Round 1
         keys = self._keys[8]
@@ -188,17 +193,15 @@ class IDEA:
         return decrypted
 
     def encrypt_message(self, message):
-        encrypted_message = ''
+        encrypted_message = b''
         for i in range(0, len(message), 8):
             block = message[i:i + 8]
 
-            block = string_to_hex(block)
-
             encrypted_block = self.encrypt(block)
 
-            encrypted_block_str = hex(encrypted_block)[2:]
+            encrypted_block_str = encrypted_block.to_bytes(8, 'big')
             if len(encrypted_block_str) != 16:
-                encrypted_block_str = '0' * (16 - len(encrypted_block_str)) + encrypted_block_str
+                encrypted_block_str = b'0' * (16 - len(encrypted_block_str)) + encrypted_block_str
 
             encrypted_message += encrypted_block_str
         return encrypted_message
@@ -207,7 +210,7 @@ class IDEA:
         decrypted_message = ''
         for i in range(0, len(encrypted_message), 16):
             block = encrypted_message[i:i + 16]
-            block = int(block, 16)
+            # block = int(block, 16)
 
             decrypted_block = self.decrypt(block)
 
@@ -215,99 +218,72 @@ class IDEA:
             decrypted_message += decrypted_block_str
         return decrypted_message
 
-    # def encrypt_image(self, image_path):
-    #     with open(image_path, 'rb') as image_file:
-    #         header = image_file.read(128)  # Read the header (first 54 bytes) of the image 5699
-    #         image_data = image_file.read()
-    #
-    #     # Convert the image data to a string
-    #     encoded_string = base64.b64encode(image_data)
-    #     message = encoded_string.decode('cp1251')
-    #
-    #     encrypted_message = ''
-    #     # encrypted_message = self.encrypt_message(message)
-    #     for i in range(0, len(message), 8):
-    #         block = message[i:i + 8]
-    #
-    #         block = string_to_hex(block)
-    #
-    #         encrypted_block = self.encrypt(block)
-    #
-    #         encrypted_block_str = hex(encrypted_block)[2:]
-    #         # encrypted_block_str = format(encrypted_block, '016x')
-    #         if len(encrypted_block_str) != 16:
-    #             encrypted_block_str = '0' * (16 - len(encrypted_block_str)) + encrypted_block_str
-    #
-    #         encrypted_message += encrypted_block_str
-    #
-    #     # Combine the header and the encrypted message
-    #     encrypted_image_data = header + bytes.fromhex(encrypted_message)
-    #
-    #     return encrypted_image_data
 
+    def encrypt_image(self, input_filename, output_filename):
+        header_size = 14 + 40
+        # header_size = 64
 
-    # def decrypt_image(self, encrypted_image_data):
-    #     header = encrypted_image_data[:128]  # Extract the header (first 54 bytes) of the encrypted image
-    #     encrypted_message = encrypted_image_data[128:].hex()
-    #
-    #     decrypted_message = ''
-    #     for i in range(0, len(encrypted_message), 16):
-    #         block = encrypted_message[i:i + 16]
-    #         block = int(block, 16)
-    #
-    #         decrypted_block = self.decrypt(block)
-    #
-    #         decrypted_block_str = hex_to_string(decrypted_block)
-    #         decrypted_message += decrypted_block_str
-    #
-    #     # Convert the decrypted message back to image data
-    #     decoded_string = decrypted_message.encode('cp1251')
-    #     image_data = base64.b64decode(decoded_string)
-    #
-    #     # Combine the header and the decrypted image data
-    #     decrypted_image_data = header + image_data
-    #
-    #     return decrypted_image_data
+        with open(input_filename, 'rb') as input_file:
+            bmp_header = input_file.read(header_size)
 
+            pixel_data = input_file.read()
 
-    def encrypt_image(self, image_path):
-        with open(image_path, 'rb') as image_file:
-            header = image_file.read(128)  # Read the header (first 128 bytes) of the image
-            image_data = image_file.read()
-
-        encrypted_message = b''
-        for i in range(0, len(image_data), 8):
-            block = image_data[i:i + 8]
+        # encrypted_pixel_data = self.encrypt_message(pixel_data).encode('cp1251')
+        encrypted_pixel_data = b''
+        for i in range(0, len(pixel_data), 8):
+            block = pixel_data[i:i + 8]
 
             encrypted_block = self.encrypt(block)
 
-            encrypted_block_bytes = encrypted_block.to_bytes(8, 'big')  # Convert encrypted_block to bytes
+            encrypted_block_bytes = encrypted_block.to_bytes(8, 'big')
+            # encrypted_pixel_data = pixel_data[:i] + encrypted_block_bytes + pixel_data[i + 8:]
+            encrypted_pixel_data += encrypted_block_bytes
 
-            encrypted_message += encrypted_block_bytes
+        # print(len(encrypted_pixel_data))
 
-        encrypted_image_data = header + encrypted_message
+        # new_bmp_content = bmp_header + replace_pixel_data
+        new_bmp_content = bmp_header + encrypted_pixel_data
 
-        return encrypted_image_data
+        # Write the new BMP content to the output file
+        with open(output_filename, 'wb') as output_file:
+            output_file.write(new_bmp_content)
 
-    def decrypt_image(self, encrypted_image_data):
-        header = encrypted_image_data[:128]  # Extract the header (first 128 bytes) of the encrypted image
-        encrypted_message = encrypted_image_data[128:]
 
-        decrypted_message = b''
-        for i in range(0, len(encrypted_message), 8):
-            block = encrypted_message[i:i + 8]
-            block_int = int.from_bytes(block, 'big')
+    def decrypt_image(self, input_filename, output_filename):
+        # Define the size of the BMP header (14 bytes) and the DIB header (40 bytes)
+        header_size = 14 + 40
+        # header_size = 64
+        bmp_header, pixel_data = None, None
 
-            decrypted_block = self.decrypt(block_int)
+        # Open the input BMP file in binary mode
+        with open(input_filename, 'rb') as input_file:
+            # Read the BMP header
+            bmp_header = input_file.read(header_size)
+
+            # Read the pixel data
+            pixel_data = input_file.read()
+            # print(len(pixel_data))
+
+        # тут мы типа шифруем картинку
+        decrypted_pixel_data = b''
+        for i in range(0, len(pixel_data), 8):
+            block = pixel_data[i:i + 8]
+
+            decrypted_block = self.decrypt(block)
 
             decrypted_block_bytes = decrypted_block.to_bytes(8, 'big')
-            decrypted_message += decrypted_block_bytes
+            # encrypted_pixel_data = pixel_data[:i] + encrypted_block_bytes + pixel_data[i + 8:]
+            decrypted_pixel_data += decrypted_block_bytes
 
-        image_data = base64.b64decode(decrypted_message)
+        # print(len(decrypted_pixel_data))
 
-        decrypted_image_data = header + image_data
+        # new_bmp_content = bmp_header + replace_pixel_data
+        new_bmp_content = bmp_header + decrypted_pixel_data
 
-        return decrypted_image_data
+        # Write the new BMP content to the output file
+        with open(output_filename, 'wb') as output_file:
+            output_file.write(new_bmp_content)
+
 
 
 def string_to_hex(string):
@@ -346,25 +322,28 @@ def decode_base64(encoded_data):
 
 def main():
     key = 0x2BD6459F82C5B300952C49104881FF48
-    image_path = 'image.jpg'
+    image_path = 'smile.bmp'
     print('key\t\t', hex(key))
 
     my_IDEA = IDEA(key)
 
+    plainStr = "To Sherlock Holmes she is always fgv"
+    print(len(plainStr))
+    print('plainStr_hex\t', hex(string_to_hex(plainStr)))
+    print('plaintext\t', plainStr)
+    print()
 
-    encrypted_image = my_IDEA.encrypt_image(image_path)
-    # encrypted_image1 = decode_base64(encrypted_image)
-    with open('encrypted_image.bmp', 'wb') as image_file:
-        image_file.write(encrypted_image)
-    print('encrypted_image\t', encrypted_image.hex()[:200])
 
-    # save_encrypted_image(encrypted_image, 'encrypted_image.bmp')
-    # string_to_image(encrypted_image, 'encrypted_image.jpg')
+    encrypted_message = my_IDEA.encrypt_message(plainStr.encode('cp1251'))
+    print('encrypted_message_hex\t', encrypted_message)
 
-    decrypted_image = my_IDEA.decrypt_image(encrypted_image)
-    with open('decrypted_image.bmp', 'wb') as image_file:
-        image_file.write(decrypted_image)
-    print('decrypted_image\t', decrypted_image.hex()[:200])
+    decrypted_message = my_IDEA.decrypt_message(encrypted_message)
+    print('decrypted_message\t', decrypted_message)
+
+
+    my_IDEA.encrypt_image(image_path, 'encrypted_image.bmp')
+
+    my_IDEA.decrypt_image('encrypted_image.bmp', 'decrypted_image.bmp')
 
 
 if __name__ == '__main__':
