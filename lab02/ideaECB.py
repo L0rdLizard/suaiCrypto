@@ -359,7 +359,7 @@ def decode_base64(encoded_data):
 
 def main():
     key = 0x2BD6459F82C5B300952C49104881FF48
-    image_path = 'smile.bmp'
+    image_path = 'lena_color.bmp'
     print('key\t\t', hex(key))
 
     my_IDEA = IDEA(key)
@@ -377,7 +377,7 @@ def main():
     decrypted_message = my_IDEA.decrypt_message(encrypted_message)
     print('decrypted_message\t', decrypted_message)
 
-    my_IDEA.encrypt_image(image_path, 'encrypted_image.bmp')
+    # my_IDEA.encrypt_image(image_path, 'encrypted_image.bmp')
 
     my_IDEA.decrypt_image('encrypted_image.bmp', 'decrypted_image.bmp')
 
