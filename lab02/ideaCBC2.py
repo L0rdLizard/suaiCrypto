@@ -108,6 +108,7 @@ class IDEA:
             keys.append(tuple(round_keys))
         self._keys = tuple(keys)
 
+    @logger.catch()
     def encrypt(self, plain: bytes):
         plain_int = int.from_bytes(plain, 'big')
         p1 = (plain_int >> 48) & 0xFFFF
@@ -134,7 +135,7 @@ class IDEA:
         encrypted = (y1 << 48) | (y2 << 32) | (y3 << 16) | y4
         return encrypted
 
-    def decrypt(self, encrypted : bytes):
+    def decrypt(self, encrypted: bytes):
         encrypted_int = int.from_bytes(encrypted, 'big')
         p1 = (encrypted_int >> 48) & 0xFFFF
         p2 = (encrypted_int >> 32) & 0xFFFF
@@ -196,17 +197,19 @@ class IDEA:
         return decrypted
 
     def encrypt_message(self, message):
+        message = pad(message)
         encrypted_message = b''
         previous = self._iv
         for i in range(0, len(message), 8):
             # block = message[i:i + 8]
-            block = xor_bytes(message[i:i + 8], previous, 8)
+            block = xor_bytes(message[i:i + 8], previous)
+            # print(previous)
 
             encrypted_block = self.encrypt(block)
 
             encrypted_block_str = encrypted_block.to_bytes(8, 'big')
-            if len(encrypted_block_str) != 16:
-                encrypted_block_str = b'0' * (16 - len(encrypted_block_str)) + encrypted_block_str
+            # if len(encrypted_block_str) != 8:
+            #     encrypted_block_str = b'0' * (8 - len(encrypted_block_str)) + encrypted_block_str
 
             previous = encrypted_block_str
 
@@ -214,20 +217,25 @@ class IDEA:
         return encrypted_message
 
     def decrypt_message(self, encrypted_message):
-        decrypted_message = ''
+        # decrypted_message = b''
+        decrypted_blocks = []
         previous = self._iv
-        for i in range(0, len(encrypted_message), 16):
-            block = encrypted_message[i:i + 16]
+        for i in range(0, len(encrypted_message), 8):
+            block = encrypted_message[i:i + 8]
             # block = int(block, 16)
+            # print(f"{previous=}")
 
             decrypted_block = self.decrypt(block)
 
-            decrypted_block_xor = xor_bytes(decrypted_block.to_bytes(8, 'big'), previous, 16)
+            decrypted_block_xor = xor_bytes(previous, decrypted_block.to_bytes(8, 'big'))
+            # print(f"{decrypted_block_xor=}")
+            previous = block
 
-            # decrypted_block_str = hex_to_string(decrypted_block)
-            decrypted_block_str = decrypted_block_xor.decode('cp1251')
-            decrypted_message += decrypted_block_str
-        return decrypted_message
+            decrypted_blocks.append(decrypted_block_xor)
+            # decrypted_block_str = decrypted_block_xor.decode('cp1251')
+            # decrypted_message += decrypted_block_xor
+
+        return unpad(b''.join(decrypted_blocks))
 
     #
 
@@ -267,8 +275,6 @@ class IDEA:
     #
     #     return unpad(b''.join(blocks))
 
-
-
     def encrypt_image(self, input_filename, output_filename):
         header_size = 14 + 40
         # header_size = 64
@@ -278,16 +284,16 @@ class IDEA:
 
             pixel_data = input_file.read()
 
-        # encrypted_pixel_data = self.encrypt_message(pixel_data).encode('cp1251')
-        encrypted_pixel_data = b''
-        for i in range(0, len(pixel_data), 8):
-            block = pixel_data[i:i + 8]
-
-            encrypted_block = self.encrypt(block)
-
-            encrypted_block_bytes = encrypted_block.to_bytes(8, 'big')
-            # encrypted_pixel_data = pixel_data[:i] + encrypted_block_bytes + pixel_data[i + 8:]
-            encrypted_pixel_data += encrypted_block_bytes
+        encrypted_pixel_data = self.encrypt_message(pixel_data)
+        # encrypted_pixel_data = b''
+        # for i in range(0, len(pixel_data), 8):
+        #     block = pixel_data[i:i + 8]
+        #
+        #     encrypted_block = self.encrypt(block)
+        #
+        #     encrypted_block_bytes = encrypted_block.to_bytes(8, 'big')
+        #     # encrypted_pixel_data = pixel_data[:i] + encrypted_block_bytes + pixel_data[i + 8:]
+        #     encrypted_pixel_data += encrypted_block_bytes
 
         # print(len(encrypted_pixel_data))
 
@@ -297,7 +303,6 @@ class IDEA:
         # Write the new BMP content to the output file
         with open(output_filename, 'wb') as output_file:
             output_file.write(new_bmp_content)
-
 
     def decrypt_image(self, input_filename, output_filename):
         # Define the size of the BMP header (14 bytes) and the DIB header (40 bytes)
@@ -315,15 +320,16 @@ class IDEA:
             # print(len(pixel_data))
 
         # тут мы типа шифруем картинку
-        decrypted_pixel_data = b''
-        for i in range(0, len(pixel_data), 8):
-            block = pixel_data[i:i + 8]
-
-            decrypted_block = self.decrypt(block)
-
-            decrypted_block_bytes = decrypted_block.to_bytes(8, 'big')
-            # encrypted_pixel_data = pixel_data[:i] + encrypted_block_bytes + pixel_data[i + 8:]
-            decrypted_pixel_data += decrypted_block_bytes
+        decrypted_pixel_data = self.decrypt_message(pixel_data)
+        # decrypted_pixel_data = b''
+        # for i in range(0, len(pixel_data), 8):
+        #     block = pixel_data[i:i + 8]
+        #
+        #     decrypted_block = self.decrypt(block)
+        #
+        #     decrypted_block_bytes = decrypted_block.to_bytes(8, 'big')
+        #     # encrypted_pixel_data = pixel_data[:i] + encrypted_block_bytes + pixel_data[i + 8:]
+        #     decrypted_pixel_data += decrypted_block_bytes
 
         # print(len(decrypted_pixel_data))
 
@@ -335,21 +341,46 @@ class IDEA:
             output_file.write(new_bmp_content)
 
 
-
 def string_to_hex(string):
     return int(string.encode("cp1251").hex(), 16)
 
-@logger.catch
-def xor_bytes(ba1, ba2, length):
-    print(len(ba1), len(ba2))
-    # return bytes([_a ^ _b for _a, _b in zip(ba1, ba2)])
-    # assume ba1 and ba2 is 64 bytes, convert to int
-    int1 = int.from_bytes(ba1, 'big')
-    int2 = int.from_bytes(ba2, 'big')
-    # xor
-    int3 = int1 ^ int2
-    # convert back to bytes
-    return int3.to_bytes(length, 'big')
+
+def pad(plaintext):
+    """
+    Pads the given plaintext with PKCS#7 padding to a multiple of 16 bytes.
+    Note that if the plaintext size is a multiple of 16,
+    a whole block will be added.
+    """
+    padding_len = 8 - (len(plaintext) % 8)
+    padding = bytes([padding_len] * padding_len)
+    return plaintext + padding
+
+
+def unpad(plaintext):
+    """
+    Removes a PKCS#7 padding, returning the unpadded text and ensuring the
+    padding was correct.
+    """
+    padding_len = plaintext[-1]
+    assert padding_len > 0
+    message, padding = plaintext[:-padding_len], plaintext[-padding_len:]
+    # assert all(p == padding_len for p in padding)
+    return message
+
+
+# @logger.catch
+# def xor_bytes(ba1, ba2):
+#     # return bytes([_a ^ _b for _a, _b in zip(ba1, ba2)])
+#     # assume ba1 and ba2 is 64 bytes, convert to int
+#     int1 = int.from_bytes(ba1, 'big')
+#     int2 = int.from_bytes(ba2, 'big')
+#     # xor
+#     int3 = int1 ^ int2
+#     # convert back to bytes
+#     return int3.to_bytes(8, 'big')
+
+def xor_bytes(ba1, ba2):
+    return bytes([_a ^ _b for _a, _b in zip(ba1, ba2)])
 
 
 def hex_to_string(hex_value):
@@ -375,6 +406,7 @@ def save_encrypted_image(encrypted_image_data, output_path):
     with open(output_path, 'wb') as image_file:
         image_file.write(encrypted_image_data)
 
+
 def decode_base64(encoded_data):
     header = encoded_data[:64]  # Extract the header (first 54 bytes) of the encrypted image
     encoded_data_without_header = encoded_data[64:]
@@ -382,10 +414,12 @@ def decode_base64(encoded_data):
     decoded_data_result = header + decoded_data_temp
     return decoded_data_result
 
+
 def main():
     key = 0x2BD6459F82C5B300952C49104881FF48
     image_path = 'smile.bmp'
-    iv = secrets.token_bytes(16)
+    # iv = secrets.token_bytes(8)
+    iv = b'\x00\x00\x00\xFF\x00\x00\x00\x00'
     print('key\t\t', hex(key))
 
     my_IDEA = IDEA(key, iv)
@@ -397,18 +431,23 @@ def main():
     print('plaintext\t', plainStr)
     print()
 
-
     encrypted_message = my_IDEA.encrypt_message(plainStr.encode('cp1251'))
     print('encrypted_message_hex\t', encrypted_message)
 
     decrypted_message = my_IDEA.decrypt_message(encrypted_message)
-    print('decrypted_message\t', decrypted_message)
-
+    decrypted_message_str = decrypted_message.decode('cp1251')
+    print('decrypted_message_hex\t', decrypted_message)
+    print('decrypted_message\t', decrypted_message_str)
 
     my_IDEA.encrypt_image(image_path, 'encrypted_image.bmp')
 
     my_IDEA.decrypt_image('encrypted_image.bmp', 'decrypted_image.bmp')
 
+
+# def maintest():
+#     test_str = b'hello world'
+#     print(pad(test_str), len(pad(test_str)))
+#     print(unpad(pad(test_str)), len(unpad(pad(test_str))))
 
 if __name__ == '__main__':
     main()
