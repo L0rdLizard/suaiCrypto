@@ -121,6 +121,7 @@ class IDEA:
         return self.bytes_to_bits_str(i.to_bytes(8, byteorder='big'))
 
     def encrypt_second(self, plain: bytes):
+        changes = [0] * 64
         plain_int = int.from_bytes(plain, 'big')
 
         print(self.int_to_bits_str(plain_int))
@@ -131,16 +132,20 @@ class IDEA:
         p2 = (plain_int >> 32) & 0xFFFF
         p3 = (plain_int >> 16) & 0xFFFF
         p4 = plain_int & 0xFFFF
-        # p1 = (plain >> 48) & 0xFFFF
-        # p2 = (plain >> 32) & 0xFFFF
-        # p3 = (plain >> 16) & 0xFFFF
-        # p4 = plain & 0xFFFF
 
         # 8 циклов
         for i in range(8):
             keys = self._keys[i]
             p1, p2, p3, p4 = self.round(p1, p2, p3, p4, keys)
 
+            new_block = (p1 << 48) | (p2 << 32) | (p3 << 16) | p4
+            new_block = self.int_to_bits_str(new_block)
+            block = self.int_to_bits_str(plain_int)
+            for j in range(len(block)):
+                if block[j] != new_block[j]:
+                    changes[j] += 1
+
+        print(changes)
         # окончательное преобразование
         k1, k2, k3, k4, k5, k6 = self._keys[8]
         y1 = self.mul_mod(p1, k1)
@@ -152,6 +157,7 @@ class IDEA:
         return encrypted
 
     def encrypt_forth(self, plain: bytes):
+        changes = [0] * 64
         plain_int = int.from_bytes(plain, 'big')
 
         print(self.int_to_bits_str(plain_int))
@@ -162,16 +168,20 @@ class IDEA:
         p2 = (plain_int >> 32) & 0xFFFF
         p3 = (plain_int >> 16) & 0xFFFF
         p4 = plain_int & 0xFFFF
-        # p1 = (plain >> 48) & 0xFFFF
-        # p2 = (plain >> 32) & 0xFFFF
-        # p3 = (plain >> 16) & 0xFFFF
-        # p4 = plain & 0xFFFF
 
         # 8 циклов
         for i in range(8):
             keys = self._keys[i]
             p1, p2, p3, p4 = self.round(p1, p2, p3, p4, keys)
 
+            new_block = (p1 << 48) | (p2 << 32) | (p3 << 16) | p4
+            new_block = self.int_to_bits_str(new_block)
+            block = self.int_to_bits_str(plain_int)
+            for j in range(len(block)):
+                if block[j] != new_block[j]:
+                    changes[j] += 1
+
+        print(changes)
         # окончательное преобразование
         k1, k2, k3, k4, k5, k6 = self._keys[8]
         y1 = self.mul_mod(p1, k1)
@@ -269,90 +279,6 @@ class IDEA:
         decrypted = (y1 << 48) | (y2 << 32) | (y3 << 16) | y4
         return decrypted
 
-    def encrypt_message(self, message):
-        encrypted_message = b''
-        for i in range(0, len(message), 8):
-            block = message[i:i + 8]
-
-            encrypted_block = self.encrypt(block)
-
-            encrypted_block_str = encrypted_block.to_bytes(8, 'big')
-            if len(encrypted_block_str) != 8:
-                encrypted_block_str = b'0' * (8 - len(encrypted_block_str)) + encrypted_block_str
-
-            encrypted_message += encrypted_block_str
-        return encrypted_message
-
-    def decrypt_message(self, encrypted_message):
-        decrypted_message = ''
-        for i in range(0, len(encrypted_message), 8):
-            block = encrypted_message[i:i + 8]
-            # block = int(block, 16)
-
-            decrypted_block = self.decrypt(block)
-
-            decrypted_block_str = hex_to_string(decrypted_block)
-            decrypted_message += decrypted_block_str
-        return decrypted_message
-
-    def encrypt_image(self, input_filename, output_filename):
-        header_size = 14 + 40
-        # header_size = 64
-
-        with open(input_filename, 'rb') as input_file:
-            bmp_header = input_file.read(header_size)
-
-            pixel_data = input_file.read()
-
-        encrypted_pixel_data = b''
-        for i in range(0, len(pixel_data), 8):
-            block = pixel_data[i:i + 8]
-
-            encrypted_block = self.encrypt(block)
-
-            encrypted_block_bytes = encrypted_block.to_bytes(8, 'big')
-
-            encrypted_pixel_data += encrypted_block_bytes
-
-        new_bmp_content = bmp_header + encrypted_pixel_data
-
-        # Write the new BMP content to the output file
-        with open(output_filename, 'wb') as output_file:
-            output_file.write(new_bmp_content)
-
-    def decrypt_image(self, input_filename, output_filename):
-        # Define the size of the BMP header (14 bytes) and the DIB header (40 bytes)
-        header_size = 14 + 40
-        bmp_header, pixel_data = None, None
-
-        with open(input_filename, 'rb') as input_file:
-            # Read the BMP header
-            bmp_header = input_file.read(header_size)
-
-            # Read the pixel data
-            pixel_data = input_file.read()
-            # print(len(pixel_data))
-
-        decrypted_pixel_data = b''
-        for i in range(0, len(pixel_data), 8):
-            block = pixel_data[i:i + 8]
-
-            decrypted_block = self.decrypt(block)
-
-            decrypted_block_bytes = decrypted_block.to_bytes(8, 'big')
-            # encrypted_pixel_data = pixel_data[:i] + encrypted_block_bytes + pixel_data[i + 8:]
-            decrypted_pixel_data += decrypted_block_bytes
-
-        # print(len(decrypted_pixel_data))
-
-        # new_bmp_content = bmp_header + replace_pixel_data
-        new_bmp_content = bmp_header + decrypted_pixel_data
-
-        # Write the new BMP content to the output file
-        with open(output_filename, 'wb') as output_file:
-            output_file.write(new_bmp_content)
-
-
 def string_to_hex(string):
     return int(string.encode("cp1251").hex(), 16)
 
@@ -391,7 +317,7 @@ def decode_base64(encoded_data):
 
 def main():
     key = 0x2BD6459F82C5B300952C49104881FF48
-    image_path = 'lena_color.bmp'
+    image_path = 'smile.bmp'
     print('key\t\t', hex(key))
 
     my_IDEA = IDEA(key)
@@ -405,12 +331,12 @@ def main():
     print()
 
     encrypted_block_second = my_IDEA.encrypt_second(plainStr.encode('cp1251'))
-    print('encrypted_block\t', encrypted_block_second)
+    print('encrypted_block_second\t', encrypted_block_second)
 
     print()
 
     encrypted_block_forth = my_IDEA.encrypt_forth(plainStr.encode('cp1251'))
-    print('encrypted_block\t', encrypted_block_forth)
+    print('encrypted_block_forth\t', encrypted_block_forth)
 
 
 if __name__ == '__main__':
