@@ -279,6 +279,73 @@ class IDEA:
         decrypted = (y1 << 48) | (y2 << 32) | (y3 << 16) | y4
         return decrypted
 
+    def auto_corr_test(self, data):
+        print("Автокорреляционный тест")
+        bits = int.from_bytes(data, byteorder='big')
+        entry_bytes = [1 if bits & (1 << k) else -1 for k in range(63, -1, -1)]
+
+        for D in range(1, 33):
+            A = 0
+            for i in range(64 - D):
+                A += entry_bytes[i] * entry_bytes[i + D]
+
+            X = A / (64 - D)
+            print(f"для D = {D}: {X}")
+
+    def series_test(self, data):
+        print("Последовательностей разрывов")
+        bits = int.from_bytes(data, byteorder='big')
+        entry_nul = ""
+        nul = ""
+        one = ""
+
+        for k in range(63, -1, -1):
+            nul += "0"
+            one += "1"
+            entry_nul += "1" if bits & (1 << k) else "0"
+
+        entry_one = entry_nul
+        X = 0
+
+        for i in range(63, -1, -1):
+            count = entry_nul.count(nul)
+            entry_nul = entry_nul.replace(nul, "")
+            nul = nul[:-1]
+
+            if count != 0:
+                print(f"длиной {i + 1} = {count}")
+                e = (64 - i + 4) / (2 ** (i + 3))
+                X += (count - e) ** 2 / e
+
+        print("Последовательностей блоков")
+        for i in range(63, -1, -1):
+            count = entry_one.count(one)
+            entry_one = entry_one.replace(one, "")
+            one = one[:-1]
+
+            if count != 0:
+                print(f"длиной {i + 1} = {count}")
+                e = (64 - i + 4) / (2 ** (i + 4))
+                X += (count - e) ** 2 / e
+
+        print(f"Статистика Х = {X}")
+
+    def frequency_test(self, data):
+        test = data
+        sum0 = 0
+        sum1 = 0
+        bites = int.from_bytes(test, byteorder='big')
+
+        for k in range(63, -1, -1):
+            if bites & (1 << k):
+                sum1 += 1
+            else:
+                sum0 += 1
+
+        res0 = sum0 / 64
+        res1 = sum1 / 64
+        print(f"Частотный тест 0: {res0}\nЧастотный тест 1: {res1}")
+
 def string_to_hex(string):
     return int(string.encode("cp1251").hex(), 16)
 
@@ -320,6 +387,8 @@ def main():
     image_path = 'smile.bmp'
     print('key\t\t', hex(key))
 
+    # voice:.idea/1701179216437.wav
+
     my_IDEA = IDEA(key)
 
     # plainStr = "To Sherlock Holmes she is always the woman. I have seldom heard him mention her under any other name. In his eyes she eclipses and predominates the whole of her sex. It was not that he felt any emotion akin to love for Irene Adler. All emotions, and that one particularly, were abhorrent to his cold, precise but admirably balanced mind. He was, I take it, the most perfect reasoning and observing machine that the world has seen, but as a lover he would have placed himself in a false position. He never spoke of the softer passions, save with a gibe and a sneer. They were admirable things for the observer--excellent for drawing the veil from men's motives and actions. But for the trained reasoner to admit such intrusions into his own delicate and finely adjusted temperament was to introduce a distracting factor which might throw a doubt upon all his mental results. Grit in a sensitive instrument, or a crack in one of his own high-power lenses, would not be more disturbing than a strong emotion in a nature such as his. And yet there was but one woman to him, and that woman was the late Irene Adler, of dubious and questionable memory."
@@ -332,6 +401,13 @@ def main():
 
     encrypted_block_second = my_IDEA.encrypt_second(plainStr.encode('cp1251'))
     print('encrypted_block_second\t', encrypted_block_second)
+
+    print()
+    my_IDEA.auto_corr_test(encrypted_block_second.to_bytes(8, byteorder='big'))
+    print()
+    my_IDEA.series_test(encrypted_block_second.to_bytes(8, byteorder='big'))
+    print()
+    my_IDEA.frequency_test(encrypted_block_second.to_bytes(8, byteorder='big'))
 
     print()
 
